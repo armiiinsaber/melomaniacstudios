@@ -255,9 +255,47 @@ Each one traced to its root and fixed.
 - **SVG poster** rewritten with the same causal 4-beat sum at
   `T_SNAP = 2.33 s`, so poster field and first live frame agree.
 
+### Added — house index + labs featured (per DESIGN.md §5)
+- **Hero approved and FROZEN** — nothing under `.hero` was touched.
+- **DESIGN.md updated**: Toronto stripped from the eyebrow spec and the
+  footer spec. Added an explicit rule: "no city mentions anywhere in
+  house-level copy."
+- **THE HOUSE** — editorial pillar index on paper.
+  - Oversized Fraunces numerals (`clamp(4.5rem, 9vw, 10rem)`) as
+    graphic marks, pillar names in display serif
+    (`clamp(2.4rem, 5.5vw, 6rem)`), one-liners in small Inter, hairline
+    rules between rows (nothing else — no cards, no glow).
+  - Data-driven: `PILLARS` array in JS → rows rendered by a template.
+    Adding a 5th pillar means one more object.
+  - Four seeded pillars: `01 Record Label / Independent. Artist-first.`,
+    `02 Sound Design / Sonic identity for brands and spaces, zero to one
+    hundred.`, `03 Melomania / Original music, composed per night.
+    Invite only.`, `04 Labs / The experimental wing.` Each links to its
+    eventual pillar page hash (pages not built yet); `04` links to
+    `#labs` which does exist.
+- **LABS FEATURED** — full chartreuse-band section (`--green`) directly
+  after The House.
+  - Ink-on-green throughout — the signature high-contrast pairing. This
+    is the ONE loud accent moment on the page; everything around stays
+    quiet paper.
+  - Lead: "The newest wing of the house." in display serif.
+  - 3-column grid on ≥ 900 px, single-column stack below.
+  - Data-driven `LABS` array: `01 Manifold / Your music, made visible. /
+    Launch`, `02 Frequency / Find yours in four questions. / Find yours`,
+    `03 Noted / Talk to your mix. / Launch (→ noted.melomaniacstudios.com)`.
+    Room to add a 4th.
+  - Each experiment: number, name (serif), one-liner, CTA with arrow
+    across a hairline. Hover slides the arrow right — the only motion.
+- Shared `.section` / `.section-inner` / `.section-eyebrow` framework
+  scoped for reuse across pillar pages, Early Access, footer later.
+- Accessibility: pillar/lab links keyboard-focusable with ink-outline
+  focus rings; hover animations disabled under
+  `prefers-reduced-motion: reduce`. HTML escapes in the data builder.
+
 ### Pending review
 - Serving locally at http://127.0.0.1:4200 — awaiting founder approval on
-  the moving piece before styling any other section (per DESIGN.md §7).
+  The House + Labs featured before touching pillar pages, Early Access,
+  or the footer (per DESIGN.md §7).
 
 ### Next
 - The House editorial index (four pillars as equals).

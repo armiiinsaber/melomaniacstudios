@@ -179,12 +179,233 @@
       .hero-content::before { display: none; }
     }
 
+    /* ═══════════════════════════════════════════════════════════════════
+       SECTION FRAMEWORK — shared across the House index, Labs featured,
+       and (later) the pillar pages, Early Access, footer.
+       ═══════════════════════════════════════════════════════════════════ */
+    .section {
+      position: relative;
+      padding: clamp(5rem, 10vw, 10rem) clamp(1.5rem, 4vw, 3.5rem);
+    }
+    .section-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .section-eyebrow {
+      display: inline-flex; align-items: center; gap: .85rem;
+      font-size: .68rem; letter-spacing: .34em; text-transform: uppercase;
+      color: var(--ink);
+      font-weight: 500;
+      margin-bottom: clamp(3rem, 6vw, 6rem);
+    }
+    .section-eyebrow::before {
+      content: ''; width: 30px; height: 1px; background: var(--ink);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       THE HOUSE — the four pillars as equals.
+       Editorial index: oversized serif numerals + names, one-line
+       descriptions, hairline separators. Feels like a maison's list of
+       métiers. Data-driven — a fifth pillar means one more object.
+       ═══════════════════════════════════════════════════════════════════ */
+    .house { background: var(--paper); }
+
+    .pillars { list-style: none; }
+    .pillar {
+      border-top: 1px solid var(--hairline);
+    }
+    .pillar:last-child { border-bottom: 1px solid var(--hairline); }
+
+    .pillar-link {
+      display: grid;
+      grid-template-columns: minmax(3.5ch, auto) 1fr auto;
+      gap: 0 clamp(1.5rem, 4vw, 4rem);
+      align-items: center;
+      padding: clamp(3rem, 5vw, 5rem) 0;
+      color: var(--ink);
+    }
+    .pillar-num {
+      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+      font-variation-settings: 'opsz' 144;
+      font-weight: 300;
+      font-size: clamp(4.5rem, 9vw, 10rem);
+      line-height: .82;
+      letter-spacing: -.02em;
+      color: var(--ink);
+      font-feature-settings: 'lnum';
+    }
+    .pillar-body {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(.6rem, 1vw, 1rem);
+      min-width: 0;
+    }
+    .pillar-name {
+      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+      font-variation-settings: 'opsz' 144;
+      font-weight: 300;
+      font-size: clamp(2.4rem, 5.5vw, 6rem);
+      line-height: .92;
+      letter-spacing: -.02em;
+      color: var(--ink);
+      text-wrap: balance;
+    }
+    .pillar-line {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(.9rem, 1.1vw, 1.05rem);
+      line-height: 1.5;
+      color: var(--ink-soft);
+      max-width: 46ch;
+      text-wrap: balance;
+    }
+    .pillar-arrow {
+      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+      font-size: clamp(1.4rem, 2vw, 1.9rem);
+      color: var(--ink-mute);
+      line-height: 1;
+      align-self: center;
+      padding-left: 1rem;
+      transition: transform .5s ease, color .5s ease;
+    }
+    .pillar-link:hover .pillar-arrow,
+    .pillar-link:focus-visible .pillar-arrow {
+      transform: translateX(10px);
+      color: var(--ink);
+    }
+    .pillar-link:focus-visible {
+      outline: 1px solid var(--ink);
+      outline-offset: 6px;
+    }
+
+    @media (max-width: 720px) {
+      .pillar-link {
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        gap: .5rem 1rem;
+      }
+      .pillar-num {
+        grid-column: 1 / -1;
+        font-size: clamp(3.6rem, 15vw, 5.5rem);
+      }
+      .pillar-body { grid-column: 1; grid-row: 2; }
+      .pillar-arrow { grid-column: 2; grid-row: 2; padding-left: 0; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       LABS FEATURED — the newest wing of the house.
+       Full chartreuse band. Ink-on-green: the signature high-contrast
+       pairing. This is the ONE loud accent moment on the page; everything
+       around it stays quiet paper.
+       ═══════════════════════════════════════════════════════════════════ */
+    .labs {
+      background: var(--green);
+      color: var(--ink);
+    }
+    .labs .section-eyebrow { color: var(--ink); }
+    .labs .section-eyebrow::before { background: var(--ink); }
+
+    .labs-lead {
+      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+      font-variation-settings: 'opsz' 144;
+      font-weight: 300;
+      font-size: clamp(2.4rem, 6vw, 6rem);
+      line-height: .9;
+      letter-spacing: -.03em;
+      color: var(--ink);
+      max-width: 20ch;
+      text-wrap: balance;
+      margin-bottom: clamp(3rem, 7vw, 7rem);
+    }
+
+    .labs-experiments {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(1.5rem, 3vw, 3rem);
+    }
+    .lab {
+      border-top: 1px solid rgba(20,19,16,.30);
+    }
+    .lab-link {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(1.5rem, 2.5vw, 2rem);
+      color: var(--ink);
+      padding: clamp(1.5rem, 2vw, 2rem) 0 clamp(1rem, 1.5vw, 1.5rem);
+      min-height: 22rem;
+      height: 100%;
+    }
+    .lab-num {
+      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+      font-variation-settings: 'opsz' 144;
+      font-weight: 300;
+      font-size: clamp(3.5rem, 5vw, 5.5rem);
+      line-height: .82;
+      letter-spacing: -.02em;
+      color: var(--ink);
+      font-feature-settings: 'lnum';
+    }
+    .lab-body {
+      display: flex; flex-direction: column;
+      gap: .7rem;
+      margin-top: auto;
+    }
+    .lab-name {
+      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+      font-variation-settings: 'opsz' 144;
+      font-weight: 300;
+      font-size: clamp(2rem, 3.2vw, 3.4rem);
+      line-height: .92;
+      letter-spacing: -.02em;
+      color: var(--ink);
+    }
+    .lab-line {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(.9rem, 1.1vw, 1.05rem);
+      line-height: 1.5;
+      color: rgba(20,19,16,.72);
+      text-wrap: balance;
+      max-width: 32ch;
+    }
+    .lab-cta {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-family: 'Inter', sans-serif;
+      font-size: .68rem; letter-spacing: .3em; text-transform: uppercase;
+      font-weight: 500;
+      color: var(--ink);
+      margin-top: 1.2rem;
+      padding-top: 1.1rem;
+      border-top: 1px solid rgba(20,19,16,.30);
+    }
+    .lab-arrow {
+      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 1.15em;
+      margin-left: .35rem;
+      transition: transform .5s ease;
+      display: inline-block;
+    }
+    .lab-link:hover .lab-arrow,
+    .lab-link:focus-visible .lab-arrow { transform: translateX(6px); }
+    .lab-link:focus-visible {
+      outline: 1px solid var(--ink);
+      outline-offset: 6px;
+    }
+
+    @media (max-width: 900px) {
+      .labs-experiments { grid-template-columns: 1fr; }
+      .lab-link { min-height: 14rem; }
+    }
+
     /* Reduced motion → static SVG poster is the display, canvas never lights up. */
     @media (prefers-reduced-motion: reduce) {
       .hero-scroll .line { animation: none; opacity: .6; }
       html { scroll-behavior: auto; }
       #hero-canvas { display: none; }
       .hero-svg { opacity: 1; }
+      .pillar-link:hover .pillar-arrow,
+      .lab-link:hover .lab-arrow { transform: none; }
     }
   </style>
 </head>
@@ -213,7 +434,88 @@
         </div>
       </div>
     </section>
+
+    <!-- ═══ THE HOUSE ═══ Data-driven; see the builder script below. ═══ -->
+    <section class="section house" id="house" aria-labelledby="house-eyebrow">
+      <div class="section-inner">
+        <div class="section-eyebrow" id="house-eyebrow"><span>The House</span></div>
+        <ol class="pillars" role="list"></ol>
+      </div>
+    </section>
+
+    <!-- ═══ LABS FEATURED ═══ Full chartreuse band; ink-on-green. ═══════ -->
+    <section class="section labs" id="labs" aria-labelledby="labs-eyebrow">
+      <div class="section-inner">
+        <div class="section-eyebrow" id="labs-eyebrow"><span>Labs</span></div>
+        <h2 class="labs-lead">The newest wing of the house.</h2>
+        <ol class="labs-experiments" role="list"></ol>
+      </div>
+    </section>
   </main>
+
+  <!--
+    House index + Labs featured — data-driven build.
+    Pillars and experiments are pure JS objects; render templates below turn
+    them into markup. Adding a fifth pillar = one more object in PILLARS.
+    Runs before the WebGL module so the DOM is complete before scripts that
+    scroll or route by hash.
+  -->
+  <script>
+  (function buildHouseAndLabs(){
+    const PILLARS = [
+      { num: '01', name: 'Record Label', line: 'Independent. Artist-first.',                                   href: '#record-label' },
+      { num: '02', name: 'Sound Design', line: 'Sonic identity for brands and spaces, zero to one hundred.',  href: '#sound-design' },
+      { num: '03', name: 'Melomania',    line: 'Original music, composed per night. Invite only.',            href: '#melomania' },
+      { num: '04', name: 'Labs',         line: 'The experimental wing.',                                       href: '#labs' },
+    ];
+
+    const LABS = [
+      { num: '01', name: 'Manifold',  line: 'Your music, made visible.',       cta: 'Launch',     href: '#manifold' },
+      { num: '02', name: 'Frequency', line: 'Find yours in four questions.',   cta: 'Find yours', href: '#frequency' },
+      { num: '03', name: 'Noted',     line: 'Talk to your mix.',               cta: 'Launch',     href: 'https://noted.melomaniacstudios.com' },
+    ];
+
+    const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => (
+      { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
+    ));
+
+    const pillarsEl = document.querySelector('.pillars');
+    if (pillarsEl) {
+      pillarsEl.innerHTML = PILLARS.map((p) => `
+        <li class="pillar">
+          <a class="pillar-link" href="${escapeHtml(p.href)}">
+            <span class="pillar-num" aria-hidden="true">${escapeHtml(p.num)}</span>
+            <div class="pillar-body">
+              <div class="pillar-name">${escapeHtml(p.name)}</div>
+              <div class="pillar-line">${escapeHtml(p.line)}</div>
+            </div>
+            <span class="pillar-arrow" aria-hidden="true">&rarr;</span>
+          </a>
+        </li>
+      `).join('');
+    }
+
+    const labsEl = document.querySelector('.labs-experiments');
+    if (labsEl) {
+      labsEl.innerHTML = LABS.map((l) => {
+        const isExternal = /^https?:\/\//.test(l.href);
+        const extAttrs = isExternal ? ' target="_blank" rel="noopener"' : '';
+        return `
+          <li class="lab">
+            <a class="lab-link" href="${escapeHtml(l.href)}"${extAttrs}>
+              <span class="lab-num" aria-hidden="true">${escapeHtml(l.num)}</span>
+              <div class="lab-body">
+                <div class="lab-name">${escapeHtml(l.name)}</div>
+                <div class="lab-line">${escapeHtml(l.line)}</div>
+                <div class="lab-cta">${escapeHtml(l.cta)}<span class="lab-arrow" aria-hidden="true">&rarr;</span></div>
+              </div>
+            </a>
+          </li>
+        `;
+      }).join('');
+    }
+  })();
+  </script>
 
   <!--
     SVG poster.

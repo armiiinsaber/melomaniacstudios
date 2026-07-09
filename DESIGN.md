@@ -60,7 +60,7 @@ Requirements:
 - **Never the same twice**: seed the form's parameters (fold count 8/12/16, radii ratios, rotation drift, line density, where accent appears) from date+time on load. Constant slow evolution — visible change over ~20–30 seconds of watching.
 - Palette-locked: ink lines on paper, with brand-green (`--green`) traces woven through — the green threads should feel like the living current inside an ink drawing, maybe 10–15% of the line work. No other hues, no neon glow, no gradients-as-decoration.
 - Light interactivity: cursor/touch gently perturbs rotation or field. Optional (nice-to-have): a small "⊙ listen" toggle that lets the form react to mic or to a bundled ambient loop — off by default, muted styling.
-- Overlaid content: tiny uppercase eyebrow ("MELOMANIAC STUDIOS — TORONTO"), the wordmark in the display serif, one line: "A house for sound." (placeholder — founder may rewrite), and a quiet scroll cue. Nothing else. No product pitch in the hero.
+- Overlaid content: tiny uppercase eyebrow ("MELOMANIAC STUDIOS"), the wordmark in the display serif, one line: "A house for sound." (placeholder — founder may rewrite), and a quiet scroll cue. Nothing else. No product pitch in the hero. No city mentions anywhere in house-level copy (eyebrow, footer, meta).
 - Performance: cap pixel ratio at 2, degrade line density on mobile, lazy-init below-fold WebGL (Manifold page keeps its own separate scene).
 
 ## 5. Site architecture
@@ -76,7 +76,7 @@ Single-page hash routing may remain (keep existing router), but restructure cont
 3. **LABS, FEATURED** — directly after the house index, a spotlight: "The newest wing of the house." Grid of experiments: Manifold, Frequency, Noted — numbered 01/02/03 within Labs, each with name (display serif), one-liner, Launch link. Room for more. Labs is the playful wing and may carry more green than the rest of the site — e.g., a full chartreuse band/section with ink text, the boldest pop-art moment on the page — while everything around it stays quiet paper.
 4. **Pillar pages** — restyled to the new system (keep existing content/functionality: artist links, Frequency quiz, Melomania event card, sound design clients).
 5. **Early Access** — restyled; copy updated to the house voice.
-6. **Footer** — wordmark, Toronto, contact, social. Quiet.
+6. **Footer** — wordmark, contact, social. Quiet. No city mention.
 
 Functionality to preserve exactly: hash router, Supabase auth + waitlist + Frequency quiz logic, Manifold WebGL app (Manifold's own page may keep a dark ground for the visualizer; update its UI chrome — buttons, labels — to the new type/accent system, dropping chartreuse).
 
