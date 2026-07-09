@@ -143,7 +143,6 @@
       width: 1px; height: 22px;
       background: var(--ink-mute);
       transform-origin: top center;
-      /* 20 % slower than the earlier 2.8s — matches the SPEED = 0.8 tempo of the piece. */
       animation: scrollpulse 3.5s ease-in-out infinite;
     }
     @keyframes scrollpulse {
@@ -159,7 +158,7 @@
     @media (prefers-reduced-motion: reduce) {
       .hero-scroll .line { animation: none; opacity: .6; }
       html { scroll-behavior: auto; }
-      /* Reduced motion: static SVG poster is the entire display. Never light up the canvas. */
+      /* Reduced motion: static SVG poster is the entire display. */
       #hero-canvas { display: none; }
       .hero-svg { transition: none; }
     }
@@ -191,19 +190,20 @@
 
   <!--
     Static SVG poster.
-    Runs synchronously, so the composition is on paper before the WebGL module has
-    resolved. Also serves as: (a) fallback if the module fails to load / WebGL is
-    unavailable, (b) poster frame for prefers-reduced-motion (fluid frozen as a
-    static particle scatter, geometry as thin lines — same visual DNA).
+    Matches the NEW composition — a green particle scatter shaped by the same
+    seeded wave field (frozen at t=0) plus faint concentric hairlines. No stars.
+    So on load: SVG shows the frozen field → WebGL first frame renders (canvas
+    still opacity 0) → crossfade brings the same composition to life. No jump.
+
+    Also the display for prefers-reduced-motion.
   -->
   <script>
   (function buildStaticPoster(){
     const svg = document.getElementById('hero-svg');
     if (!svg) return;
 
-    // Seed the poster with the same date/hour/minute source the WebGL piece uses,
-    // so a refresh reshuffles both together — the SVG scatter and the fluid share
-    // a direction/density feel during the brief cross-fade.
+    // Same seed generator + emitter draws as the WebGL side, so both share the
+    // same "wave field snapshot" identity per load.
     const now = new Date();
     const seed = (
       (now.getFullYear() * 366 + now.getMonth() * 31 + now.getDate()) * 1440
@@ -219,81 +219,77 @@
     };
     const rand = (a, b) => a + rng() * (b - a);
 
-    // Star polygon path {n/step}: connect vertex 0 → step → 2*step → … all mod n.
-    // gcd(n, step)=1 → single continuous closed line hitting every vertex.
-    function starPath(n, r, step) {
-      let idx = 0, d = '';
-      for (let k = 0; k < n; k++) {
-        const a = (idx / n) * Math.PI * 2;
-        const x = (Math.cos(a) * r).toFixed(3);
-        const y = (Math.sin(a) * r).toFixed(3);
-        d += (k === 0 ? 'M' : 'L') + x + ',' + y + ' ';
-        idx = (idx + step) % n;
-      }
-      return d + 'Z';
-    }
-
-    const INK       = 'rgba(20,19,16,.60)';
-    const INK_MED   = 'rgba(20,19,16,.42)';
-    const INK_FAINT = 'rgba(20,19,16,.22)';
+    const INK       = 'rgba(20,19,16,.55)';
+    const INK_FAINT = 'rgba(20,19,16,.20)';
     const GREEN     = '#B8F06E';
 
-    // Spokes
-    const spokes = (n, r0, r1, opacity) => {
-      let d = '';
-      for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2;
-        d += `M${(Math.cos(a)*r0).toFixed(3)},${(Math.sin(a)*r0).toFixed(3)} L${(Math.cos(a)*r1).toFixed(3)},${(Math.sin(a)*r1).toFixed(3)} `;
+    // Same emitter seeding order as the WebGL initHero — snapshot at t=0.
+    const emitters = [];
+    for (let i = 0; i < 3; i++) {
+      emitters.push({
+        x: rand(-1.8, 1.8),
+        y: rand(-1.2, 1.2),
+        z: rand(-0.6, 0.6),   // consumed to keep the seed stream aligned; ignored below
+        omega: rand(1.6, 3.0),
+        amp:   rand(0.75, 1.15),
+        phase: rand(0, Math.PI * 2),
+      });
+    }
+    // 2D scalar-field snapshot (drop z for the poster — poster is a plane).
+    function scalarField(x, y) {
+      let f = 0;
+      for (const e of emitters) {
+        const dx = x - e.x, dy = y - e.y;
+        const r = Math.hypot(dx, dy);
+        const k = e.omega * 0.75;
+        f += e.amp * Math.sin(k * r + e.phase) / (1 + r * 0.35);
       }
-      return `<path d="${d}" fill="none" stroke="${INK}" stroke-opacity="${opacity}" stroke-width=".009"/>`;
-    };
+      return f;
+    }
 
-    // Fluid poster scatter — a seeded prolate cloud of green dots, minority ink,
-    // stretched along a random 2D "flow" direction. Reads as the WebGL fluid stopped
-    // in place. Rendered UNDER the ink line-work so the geometry still reads clearly.
-    const flowAngle = rand(-Math.PI * 0.35, Math.PI * 0.35);
-    const flowX = Math.cos(flowAngle), flowY = Math.sin(flowAngle);
-    const perpX = -flowY, perpY = flowX;
-    const N_SCATTER = 240;
-    let scatter = '';
-    for (let i = 0; i < N_SCATTER; i++) {
-      const along  = (rng() - 0.5) * 5.4;
-      const across = (Math.sqrt(rng()) * (rng() < .5 ? -1 : 1)) * 1.6;
-      const x = flowX * along + perpX * across;
-      const y = flowY * along + perpY * across;
-      if (Math.hypot(x, y) > 3.2) continue; // trim to viewBox
-      const r = rand(0.018, 0.035);
-      const isInk = rng() < 0.15;
-      const color = isInk ? INK_MED : GREEN;
-      const alpha = rand(0.28, 0.72);
-      scatter += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r.toFixed(3)}" fill="${color}" fill-opacity="${alpha.toFixed(2)}"/>`;
+    // Green particle scatter, biased by field magnitude — nodes stay dim, peaks bright.
+    const scatter = [];
+    const N = 1200;
+    for (let i = 0; i < N; i++) {
+      let x, y;
+      do { x = rand(-3.05, 3.05); y = rand(-3.05, 3.05); }
+      while (x*x + y*y > 8.7);  // r ≤ ~2.95
+      const field = scalarField(x, y);
+      const mag = Math.min(Math.abs(field), 1.4);
+      const gate = Math.max(0, (mag - 0.05) / 0.5);
+      const alpha = 0.15 + 0.78 * Math.min(1, gate);
+      const r = rand(0.011, 0.022);
+      const isInk = rng() < 0.08;
+      const color = isInk ? INK : GREEN;
+      scatter.push(
+        `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r.toFixed(3)}" fill="${color}" fill-opacity="${alpha.toFixed(2)}"/>`
+      );
     }
 
     svg.innerHTML = [
-      // fluid first (behind), so ink geometry reads on top
-      `<g>${scatter}</g>`,
-      // architecture (thin ink line-work)
+      // Field (the star of the poster)
+      `<g>${scatter.join('')}</g>`,
+      // Architecture whisper: three faint hairline circles
       `<circle cx="0" cy="0" r="2.85" fill="none" stroke="${INK_FAINT}" stroke-width=".008"/>`,
+      `<circle cx="0" cy="0" r="2.05" fill="none" stroke="${INK_FAINT}" stroke-width=".008"/>`,
       `<circle cx="0" cy="0" r="1.35" fill="none" stroke="${INK_FAINT}" stroke-width=".009"/>`,
-      spokes(24, 1.3, 2.6, .55),
-      `<path d="${starPath(12, 2.6,  5)}" fill="none" stroke="${INK}"     stroke-width=".011" stroke-linejoin="round"/>`,
-      `<path d="${starPath(10, 1.72, 3)}" fill="none" stroke="${INK}"     stroke-width=".011" stroke-linejoin="round"/>`,
-      `<path d="${starPath(12, 1.35, 5)}" fill="none" stroke="${INK_MED}" stroke-width=".010" stroke-linejoin="round"/>`,
-      `<path d="${starPath(8,  0.6,  3)}" fill="none" stroke="${INK}"     stroke-width=".010" stroke-linejoin="round"/>`,
-      // rationed continuous green {12/5}
-      `<path d="${starPath(12, 2.15, 5)}" fill="none" stroke="${GREEN}"   stroke-width=".018" stroke-linejoin="round" stroke-linecap="round"/>`,
-      `<circle cx="0" cy="0" r="0.13" fill="${INK}"/>`,
     ].join('');
   })();
   </script>
 
   <!--
     WebGL piece. Vendored ES module — no third-party CDN at runtime.
-    If the import fails or WebGL init throws, the SVG poster above stays visible.
+    On failure the SVG poster above stays.
+
+    Principle: one shared wave field. Three seeded spherical emitters + mouse-
+    as-emitter + optional Chladni standing wave. Particles read the vector
+    field for displacement and the scalar field for brightness/size. The
+    hairline circles read the same field and gently deform in JS with the
+    same equation, so nothing moves to a private clock.
   -->
   <script type="module">
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      // nothing to do — SVG poster is the display
+      // Poster is the display; do not spin up rAF.
     } else {
       try {
         const THREE = await import('./vendor/three.module.min.js');
@@ -305,7 +301,6 @@
 
     function initHero(THREE) {
       const canvas = document.getElementById('hero-canvas');
-
       let renderer;
       try {
         renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
@@ -317,17 +312,13 @@
       const INK   = 0x141310;
       const GREEN = 0xB8F06E;
       const PAPER = 0xF5F3EC;
-
-      // Single global tempo. Everything time-scaled goes through SPEED so the
-      // piece stays internally proportional at any tuning.
-      const SPEED = 0.80;
+      const SPEED = 0.80;  // single tempo knob for the whole piece
 
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setClearColor(PAPER, 1);
       const pixelRatio = renderer.getPixelRatio();
 
-      // Seeded RNG (mulberry32). Seed shifts with date + hour + minute + a 10-second
-      // bucket so the piece is "never the same twice" across a day.
+      // ---- seeded RNG (mulberry32) ----
       const now = new Date();
       const seed = (
         (now.getFullYear() * 366 + now.getMonth() * 31 + now.getDate()) * 1440
@@ -341,11 +332,7 @@
         t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
-      const pick = (arr) => arr[Math.floor(rng() * arr.length)];
       const rand = (a, b) => a + rng() * (b - a);
-
-      const FOLDS = [8, 10, 12, 16];
-      const primary = pick(FOLDS);
 
       const scene  = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
@@ -354,141 +341,96 @@
       const assembly = new THREE.Group();
       scene.add(assembly);
 
-      // ---------- Line-builders ----------
-      function segs(positions, color, opacity) {
-        const geom = new THREE.BufferGeometry();
-        geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        return new THREE.LineSegments(geom, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
-      }
-      function loop(positions, color, opacity) {
-        const geom = new THREE.BufferGeometry();
-        geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        return new THREE.Line(geom, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
-      }
-      function starChords(n, radius, step, color, opacity, z=0) {
-        const verts = [];
-        for (let i = 0; i < n; i++) {
-          const t = (i / n) * Math.PI * 2;
-          verts.push([Math.cos(t) * radius, Math.sin(t) * radius, z]);
-        }
-        const pos = [];
-        for (let i = 0; i < n; i++) {
-          const j = (i + step) % n;
-          pos.push(...verts[i], ...verts[j]);
-        }
-        return segs(pos, color, opacity);
-      }
-      // Star polygon drawn as ONE continuous closed line (LineLoop). Coprime (n, step) → one stroke.
-      function starOneLine(n, radius, step, color, opacity, z=0) {
-        const pos = [];
-        for (let k = 0; k < n; k++) {
-          const idx = (k * step) % n;
-          const t = (idx / n) * Math.PI * 2;
-          pos.push(Math.cos(t) * radius, Math.sin(t) * radius, z);
-        }
-        const geom = new THREE.BufferGeometry();
-        geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-        return new THREE.LineLoop(geom, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
-      }
-      function circleLine(radius, color, opacity, z=0, segments=192) {
-        const pos = [];
-        for (let i = 0; i <= segments; i++) {
-          const t = (i / segments) * Math.PI * 2;
-          pos.push(Math.cos(t) * radius, Math.sin(t) * radius, z);
-        }
-        return loop(pos, color, opacity);
-      }
-      function radials(n, r0, r1, color, opacity, z=0, phase=0) {
-        const pos = [];
-        for (let i = 0; i < n; i++) {
-          const t = (i / n) * Math.PI * 2 + phase;
-          pos.push(Math.cos(t)*r0, Math.sin(t)*r0, z, Math.cos(t)*r1, Math.sin(t)*r1, z);
-        }
-        return segs(pos, color, opacity);
-      }
-      function girihBand(n, rInner, rOuter, stepA, stepB, color, opacity, z) {
-        const g = new THREE.Group();
-        g.add(starChords(n, rInner, stepA, color, opacity, z));
-        g.add(starChords(n, rOuter, stepB, color, opacity * 0.72, z));
-        return g;
+      // ============================================================
+      // SHARED WAVE FIELD
+      //   Three stationary emitters (seeded per load).
+      //   Each contributes a spherical wave: u_i = A_i · sin(k·r − ω·t + φ) / (1 + α·r)
+      //   Superposition is linear → real interference (peaks add, opposite phases cancel).
+      //   c = ω / k = 1 / 0.75 ≈ 1.33 (units per second in slow-time T).
+      // ============================================================
+      const emitters = [];
+      for (let i = 0; i < 3; i++) {
+        emitters.push({
+          pos:   new THREE.Vector3(rand(-1.8, 1.8), rand(-1.2, 1.2), rand(-0.6, 0.6)),
+          omega: rand(1.6, 3.0),
+          amp:   rand(0.75, 1.15),
+          phase: rand(0, Math.PI * 2),
+        });
       }
 
-      // ---------- Fluid particle field (GPU, curl-noise + traveling wave) ----------
-      // "The sound moving through the house." Green-primary, minority ink, normal
-      // alpha blending (no additive → no wash on ivory), sharp print-like dots.
-      // Positioned in the assembly so it inherits the same tilt/offset as the
-      // architecture, but with a slight rotation of its own so it visibly crosses
-      // through the rosette plane.
+      // Chladni standing wave — nodal pattern that quietly rises and recedes.
+      const chladniKx = rand(1.4, 2.8);
+      const chladniKy = rand(1.4, 2.8);
 
-      // Count scales with viewport; on chug, drop this before anything else.
-      function chooseFluidCount(w) {
-        if (w >= 1400) return 3200;
-        if (w >= 1000) return 2400;
-        if (w >= 640)  return 1500;
-        return 900;
+      // Mouse-as-emitter — persistent 4th source whose amplitude is fed by cursor
+      // motion and decays when idle. Phase reference shared with the base emitters,
+      // so it INTERFERES with them cleanly (not just sits on top).
+      const mouseLocal = new THREE.Vector3(999, 999, 999);
+      let mouseAmp = 0.0;
+      const mouseFreq = rand(2.2, 3.4);
+
+      // ============================================================
+      // FLUID PARTICLES — the star of the piece.
+      //   Reads the same wave field. Displaces along vector field,
+      //   brightness/size along |scalar field|.
+      //   Print-dot scale, mostly green, ink minority for depth.
+      // ============================================================
+      function chooseCount(w) {
+        if (w >= 1400) return 7000;
+        if (w >= 1000) return 5000;
+        if (w >= 640)  return 3000;
+        return 1800;
       }
-      const FLUID_N = chooseFluidCount(window.innerWidth);
+      const N = chooseCount(window.innerWidth);
 
-      const flowDir = new THREE.Vector3(rand(-1, 1), rand(-0.35, 0.35), rand(-1, 1)).normalize();
-      // Orthonormal basis with flowDir
-      const up = Math.abs(flowDir.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
-      const perp1 = new THREE.Vector3().crossVectors(flowDir, up).normalize();
-      const perp2 = new THREE.Vector3().crossVectors(flowDir, perp1).normalize();
-
-      const fluidPos   = new Float32Array(FLUID_N * 3);
-      const fluidColor = new Float32Array(FLUID_N * 3);
-      const fluidSize  = new Float32Array(FLUID_N);
-      const fluidAlpha = new Float32Array(FLUID_N);
+      const pos    = new Float32Array(N * 3);
+      const col    = new Float32Array(N * 3);
+      const sizeA  = new Float32Array(N);
+      const alphaA = new Float32Array(N);
+      const gr = new THREE.Color(GREEN);
       const inkC = new THREE.Color(INK);
-      const grC  = new THREE.Color(GREEN);
 
-      for (let i = 0; i < FLUID_N; i++) {
-        // Prolate cloud, stretched along flowDir. Radius across is sqrt-sampled so
-        // density is uniform across the disc — no clumping at the axis.
-        const along  = (rng() - 0.5) * 5.6;
-        const acrossR = Math.sqrt(rng()) * 1.55;
-        const acrossA = rng() * Math.PI * 2;
-        const p = new THREE.Vector3()
-          .addScaledVector(flowDir, along)
-          .addScaledVector(perp1, Math.cos(acrossA) * acrossR)
-          .addScaledVector(perp2, Math.sin(acrossA) * acrossR);
-        fluidPos[i*3]   = p.x;
-        fluidPos[i*3+1] = p.y;
-        fluidPos[i*3+2] = p.z;
-
-        fluidSize[i]  = rand(0.7, 1.9);
-        fluidAlpha[i] = rand(0.32, 0.85);
-
-        // ~85% green, ~15% ink weight
-        const isInk = rng() < 0.15;
-        const c = isInk ? inkC : grC;
-        fluidColor[i*3]   = c.r;
-        fluidColor[i*3+1] = c.g;
-        fluidColor[i*3+2] = c.b;
+      for (let i = 0; i < N; i++) {
+        // Uniform in a disc (sqrt-sampled radius → no clumping at center), slight z spread.
+        const r  = Math.sqrt(rng()) * 3.05;
+        const th = rng() * Math.PI * 2;
+        pos[i*3]   = Math.cos(th) * r;
+        pos[i*3+1] = Math.sin(th) * r;
+        pos[i*3+2] = (rng() - 0.5) * 0.9;
+        sizeA[i]  = rand(0.55, 1.1);
+        alphaA[i] = rand(0.45, 0.95);
+        // ~92% green, ~8% ink
+        const isInk = rng() < 0.08;
+        const c = isInk ? inkC : gr;
+        col[i*3]   = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
       }
 
       const fluidGeom = new THREE.BufferGeometry();
-      fluidGeom.setAttribute('position', new THREE.BufferAttribute(fluidPos, 3));
-      fluidGeom.setAttribute('aColor',   new THREE.BufferAttribute(fluidColor, 3));
-      fluidGeom.setAttribute('aSize',    new THREE.BufferAttribute(fluidSize, 1));
-      fluidGeom.setAttribute('aAlpha',   new THREE.BufferAttribute(fluidAlpha, 1));
-
-      // Seeded wave params (already scaled to SPEED-friendly ranges)
-      const waveDir   = new THREE.Vector3(rand(-1, 1), rand(-0.6, 0.6), rand(-1, 1)).normalize();
-      const waveFreq  = rand(1.4, 2.6);
-      const waveSpeed = rand(0.12, 0.22);
-      const flowAmp   = rand(0.28, 0.42);
-      const flowTimeScale = rand(0.035, 0.055);
+      fluidGeom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      fluidGeom.setAttribute('aColor',   new THREE.BufferAttribute(col, 3));
+      fluidGeom.setAttribute('aSize',    new THREE.BufferAttribute(sizeA, 1));
+      fluidGeom.setAttribute('aAlpha',   new THREE.BufferAttribute(alphaA, 1));
 
       const FLUID_VS = /* glsl */`
+        precision highp float;
         uniform float uTime;
         uniform float uPixelRatio;
-        uniform vec3  uWaveDir;
-        uniform float uWaveFreq;
-        uniform float uWaveSpeed;
-        uniform float uAmp;
-        uniform float uFlowTime;
         uniform float uSizeBase;
+
+        // Emitter uniforms — three vec3 positions + packed (omega, amp, phase) triples.
+        uniform vec3  uE0Pos;  uniform vec3  uE1Pos;  uniform vec3  uE2Pos;
+        uniform vec3  uEOmegas;  // (omega0, omega1, omega2)
+        uniform vec3  uEAmps;    // (amp0,   amp1,   amp2)
+        uniform vec3  uEPhases;  // (phase0, phase1, phase2)
+
+        // Mouse-as-emitter
+        uniform vec3  uMousePos;
+        uniform float uMouseAmp;
+        uniform float uMouseFreq;
+
+        // Standing wave
+        uniform vec2  uChladniK;
+        uniform float uChladniAmp;
 
         attribute vec3  aColor;
         attribute float aSize;
@@ -497,79 +439,60 @@
         varying vec3  vColor;
         varying float vAlpha;
 
-        // Simplex 3D noise — Ashima
-        vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
-        vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
-        float snoise(vec3 v) {
-          const vec2  C = vec2(1.0/6.0, 1.0/3.0);
-          const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
-          vec3 i  = floor(v + dot(v, C.yyy));
-          vec3 x0 = v - i + dot(i, C.xxx);
-          vec3 g = step(x0.yzx, x0.xyz);
-          vec3 l = 1.0 - g;
-          vec3 i1 = min(g.xyz, l.zxy);
-          vec3 i2 = max(g.xyz, l.zxy);
-          vec3 x1 = x0 - i1 + 1.0 * C.xxx;
-          vec3 x2 = x0 - i2 + 2.0 * C.xxx;
-          vec3 x3 = x0 - 1.0 + 3.0 * C.xxx;
-          i = mod(i, 289.0);
-          vec4 p = permute(permute(permute(
-                     i.z + vec4(0.0, i1.z, i2.z, 1.0))
-                   + i.y + vec4(0.0, i1.y, i2.y, 1.0))
-                   + i.x + vec4(0.0, i1.x, i2.x, 1.0));
-          float n_ = 1.0/7.0;
-          vec3 ns = n_ * D.wyz - D.xzx;
-          vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-          vec4 x_ = floor(j * ns.z);
-          vec4 y_ = floor(j - 7.0 * x_);
-          vec4 x = x_ * ns.x + ns.yyyy;
-          vec4 y = y_ * ns.x + ns.yyyy;
-          vec4 h = 1.0 - abs(x) - abs(y);
-          vec4 b0 = vec4(x.xy, y.xy);
-          vec4 b1 = vec4(x.zw, y.zw);
-          vec4 s0 = floor(b0)*2.0 + 1.0;
-          vec4 s1 = floor(b1)*2.0 + 1.0;
-          vec4 sh = -step(h, vec4(0.0));
-          vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
-          vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
-          vec3 p0 = vec3(a0.xy, h.x);
-          vec3 p1 = vec3(a0.zw, h.y);
-          vec3 p2 = vec3(a1.xy, h.z);
-          vec3 p3 = vec3(a1.zw, h.w);
-          vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
-          p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-          vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-          m = m * m;
-          return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+        // Spherical wave contribution.
+        // Returns .xyz = vector displacement (dir·u), .w = scalar amplitude u.
+        //   u = A · sin(k·r − ω·t + φ) / (1 + α·r)
+        vec4 wave(vec3 p, vec3 e, float omega, float amp, float phase, float t) {
+          vec3 d = p - e;
+          float r = length(d);
+          vec3 dir = d / max(r, 0.001);
+          float k = omega * 0.75;
+          float u = amp * sin(k * r - omega * t + phase) / (1.0 + r * 0.35);
+          return vec4(dir * u, u);
         }
 
         void main() {
           vec3 basePos = position;
+          vec3  vecField    = vec3(0.0);
+          float scalarField = 0.0;
 
-          // Cheap curl-noise proxy: 3 offset snoise samples give a flow-field vector.
-          // Sampling coord itself advances with time → the field scrolls, so particles
-          // "drift like smoke" without needing per-frame position feedback.
-          float ft = uTime * uFlowTime;
-          vec3 flow;
-          flow.x = snoise(basePos * 0.70 + vec3(ft, 0.0, 0.0));
-          flow.y = snoise(basePos * 0.70 + vec3(0.0, ft * 1.13, 0.0));
-          flow.z = snoise(basePos * 0.70 + vec3(0.0, 0.0, ft * 0.87));
+          // Three stationary emitters — superposition is real interference.
+          vec4 w0 = wave(basePos, uE0Pos, uEOmegas.x, uEAmps.x, uEPhases.x, uTime);
+          vec4 w1 = wave(basePos, uE1Pos, uEOmegas.y, uEAmps.y, uEPhases.y, uTime);
+          vec4 w2 = wave(basePos, uE2Pos, uEOmegas.z, uEAmps.z, uEPhases.z, uTime);
+          vecField    += w0.xyz + w1.xyz + w2.xyz;
+          scalarField += w0.w   + w1.w   + w2.w;
 
-          // Traveling wave through the field: a planar wave whose phase moves along uWaveDir.
-          // Amplifies displacement and alpha where the wavefront is passing.
-          float wavePhase = dot(basePos, uWaveDir) * uWaveFreq - uTime * uWaveSpeed;
-          float wave = 0.5 + 0.5 * sin(wavePhase);
+          // Cursor emitter — same time reference so it INTERFERES with the base field.
+          if (uMouseAmp > 0.001) {
+            vec4 wm = wave(basePos, uMousePos, uMouseFreq, uMouseAmp, 0.0, uTime);
+            vecField    += wm.xyz;
+            scalarField += wm.w;
+          }
 
-          vec3 displaced = basePos + flow * uAmp * (0.35 + 0.75 * wave);
+          // 2-D Chladni standing wave — nodal grid where sin·sin = 0.
+          float chladni = uChladniAmp * sin(uChladniK.x * basePos.x) * sin(uChladniK.y * basePos.y);
+          scalarField += chladni;
+          vecField.z  += chladni * 0.35;
+
+          // Displace along the vector field. Magnitude tuned so interference is visible
+          // as bands of motion, but particles don't fling out of frame.
+          vec3 displaced = basePos + vecField * 0.36;
 
           vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
           gl_Position = projectionMatrix * mvPosition;
 
-          // Perspective size attenuation. mvPosition.z is negative in front of camera.
-          gl_PointSize = uSizeBase * aSize * uPixelRatio * (170.0 / max(-mvPosition.z, 0.1));
+          // Brightness/size from |scalar field| → wavefronts and interference bands
+          // read as bright and dim regions moving through the cloud.
+          float mag  = min(abs(scalarField), 1.4);
+          float gate = smoothstep(0.05, 0.55, mag);
+          float szm  = 0.55 + 0.85 * gate;
+
+          // Print-dot scale — much smaller than the previous pass.
+          gl_PointSize = uSizeBase * aSize * szm * uPixelRatio * (22.0 / max(-mvPosition.z, 0.1));
 
           vColor = aColor;
-          vAlpha = aAlpha * (0.42 + 0.58 * wave);
+          vAlpha = aAlpha * (0.16 + 0.86 * gate);
         }
       `;
 
@@ -580,7 +503,7 @@
         void main() {
           vec2 uv = gl_PointCoord - 0.5;
           float d2 = dot(uv, uv);
-          // Sharp print-like disc: tight anti-alias window, no glow.
+          // Sharp print-like disc, no glow.
           float a = smoothstep(0.24, 0.19, d2);
           if (a <= 0.001) discard;
           gl_FragColor = vec4(vColor, a * vAlpha);
@@ -591,104 +514,109 @@
         uniforms: {
           uTime:       { value: 0 },
           uPixelRatio: { value: pixelRatio },
-          uWaveDir:    { value: waveDir },
-          uWaveFreq:   { value: waveFreq },
-          uWaveSpeed:  { value: waveSpeed },
-          uAmp:        { value: flowAmp },
-          uFlowTime:   { value: flowTimeScale },
           uSizeBase:   { value: 1.0 },
+          uE0Pos:      { value: emitters[0].pos },
+          uE1Pos:      { value: emitters[1].pos },
+          uE2Pos:      { value: emitters[2].pos },
+          uEOmegas:    { value: new THREE.Vector3(emitters[0].omega, emitters[1].omega, emitters[2].omega) },
+          uEAmps:      { value: new THREE.Vector3(emitters[0].amp,   emitters[1].amp,   emitters[2].amp) },
+          uEPhases:    { value: new THREE.Vector3(emitters[0].phase, emitters[1].phase, emitters[2].phase) },
+          uMousePos:   { value: mouseLocal },
+          uMouseAmp:   { value: 0 },
+          uMouseFreq:  { value: mouseFreq },
+          uChladniK:   { value: new THREE.Vector2(chladniKx, chladniKy) },
+          uChladniAmp: { value: 0 },
         },
         vertexShader: FLUID_VS,
         fragmentShader: FLUID_FS,
         transparent: true,
-        depthWrite: false,        // don't hide ink lines behind fluid
-        depthTest: true,
-        blending: THREE.NormalBlending,  // NEVER additive on ivory ground
+        depthWrite: false,
+        depthTest:  true,
+        blending:   THREE.NormalBlending,   // NEVER additive on ivory
       });
 
       const fluid = new THREE.Points(fluidGeom, fluidMat);
-      // Slight tilt so the fluid visibly crosses through the rosette plane
-      // instead of sitting parallel to it — "sound flowing through the house."
-      fluid.rotation.x = rand(-0.35, 0.35);
-      fluid.rotation.z = rand(-0.20, 0.20);
-      fluid.position.z = rand(-0.10, 0.20);
       assembly.add(fluid);
 
-      // ---------- Ink layers (architecture) ----------
-      const spinners = [];
-
-      assembly.add(circleLine(2.85, INK, 0.14, -0.55));
-
-      const outerStep = Math.max(3, Math.floor(primary / 2) - (rng() < .5 ? 1 : 2));
-      const outer = starChords(primary, 2.6, outerStep, INK, 0.44, -0.45);
-      assembly.add(outer);
-      spinners.push({ obj: outer, spin: 0.0055 * (rng() < .5 ? 1 : -1) });
-
-      const spokes = radials(primary * 2, 1.3, 2.6, INK, 0.11, -0.25, rng() * Math.PI * 2);
-      assembly.add(spokes);
-      spinners.push({ obj: spokes, spin: 0.003 });
-
-      const midFold = pick(FOLDS);
-      const stepA = Math.max(2, Math.floor(midFold / 2) - 1);
-      const stepB = Math.max(3, Math.floor(midFold / 2));
-      const band = girihBand(midFold, 1.72, 2.05, stepA, stepB, INK, 0.55, 0.0);
-      assembly.add(band);
-      spinners.push({ obj: band, spin: -0.011 });
-
-      const innerStep = pick([3, 5, 7]);
-      const inner = starChords(12, 1.35, innerStep, INK, 0.66, 0.42);
-      assembly.add(inner);
-      spinners.push({ obj: inner, spin: 0.019 });
-
-      assembly.add(circleLine(1.35, INK, 0.30, 0.42));
-
-      const central = starChords(8, 0.6, 3, INK, 0.82, 0.7);
-      assembly.add(central);
-      spinners.push({ obj: central, spin: -0.026 });
-
-      assembly.add(circleLine(0.13, INK, 0.7, 0.85, 64));
-
-      // ---------- Green line: one continuous stroke, breathing quietly ----------
-      // Now the *secondary* green — the fluid carries the primary green ration.
-      // Opacity oscillates between ~0.10 and ~0.42 on a long cycle so it rises and
-      // recedes; total green budget stays disciplined.
-      const COPRIME = [[8,3],[10,3],[10,7],[12,5],[12,7],[16,3],[16,5],[16,7]];
-      const [gN, gStep] = pick(COPRIME);
-      const greenTrace = starOneLine(gN, 2.15, gStep, GREEN, 0.28, 0.15);
-      assembly.add(greenTrace);
-      spinners.push({ obj: greenTrace, spin: 0.008 });
-
-      // ---------- Ink drift dust (all ink now — fluid owns the green) ----------
-      const PC = 260;
-      const dPos  = new Float32Array(PC * 3);
-      const dCol  = new Float32Array(PC * 3);
-      const dMeta = new Float32Array(PC * 4);
-      const inkColor = new THREE.Color(INK);
-      for (let i = 0; i < PC; i++) {
-        const r = rand(0.35, 3.15);
-        const a = rng() * Math.PI * 2;
-        const z0 = (rng() - 0.5) * 1.1;
-        dPos[i*3]     = Math.cos(a) * r;
-        dPos[i*3+1]   = Math.sin(a) * r;
-        dPos[i*3+2]   = z0;
-        dMeta[i*4]    = r;
-        dMeta[i*4+1]  = a;
-        dMeta[i*4+2]  = rand(0.35, 1.6);
-        dMeta[i*4+3]  = z0;
-        dCol[i*3] = inkColor.r; dCol[i*3+1] = inkColor.g; dCol[i*3+2] = inkColor.b;
+      // ============================================================
+      // ARCHITECTURE WHISPER — three faint hairline circles.
+      //   Same wave field: JS mirrors the shader math so lines and particles
+      //   move to the SAME music.
+      // ============================================================
+      function makeCircle(radiusBase, colorHex, opacity, z, segments=128) {
+        const positions = new Float32Array(segments * 3);
+        for (let i = 0; i < segments; i++) {
+          const t = (i / segments) * Math.PI * 2;
+          positions[i*3]   = Math.cos(t) * radiusBase;
+          positions[i*3+1] = Math.sin(t) * radiusBase;
+          positions[i*3+2] = z;
+        }
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const line = new THREE.LineLoop(geom, new THREE.LineBasicMaterial({
+          color: colorHex, transparent: true, opacity, depthWrite: false,
+        }));
+        line.userData = { basePositions: positions.slice() };
+        return line;
       }
-      const dGeom = new THREE.BufferGeometry();
-      dGeom.setAttribute('position', new THREE.Float32BufferAttribute(dPos, 3));
-      dGeom.setAttribute('color',    new THREE.Float32BufferAttribute(dCol, 3));
-      const dust = new THREE.Points(dGeom, new THREE.PointsMaterial({
-        size: 0.018, sizeAttenuation: true,
-        vertexColors: true, transparent: true, opacity: 0.42,
-        depthWrite: false,
-      }));
-      assembly.add(dust);
 
-      // Sculptural tilt + random per-load starting angle
-      const baseTiltX = 0.32;
+      const circles = [
+        makeCircle(2.85, INK, 0.15, -0.12),
+        makeCircle(2.05, INK, 0.17,  0.02),
+        makeCircle(1.35, INK, 0.22,  0.14),
+      ];
+      circles.forEach(c => assembly.add(c));
+
+      // Mirror of the shader's scalar field, in JS, so circle deform stays coherent.
+      function scalarFieldJS(bx, by, bz, T) {
+        let f = 0;
+        for (let j = 0; j < 3; j++) {
+          const e = emitters[j];
+          const dx = bx - e.pos.x, dy = by - e.pos.y, dz = bz - e.pos.z;
+          const r  = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          const k  = e.omega * 0.75;
+          f += e.amp * Math.sin(k * r - e.omega * T + e.phase) / (1 + r * 0.35);
+        }
+        if (mouseAmp > 0.001) {
+          const dx = bx - mouseLocal.x, dy = by - mouseLocal.y, dz = bz - mouseLocal.z;
+          const r  = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          const k  = mouseFreq * 0.75;
+          f += mouseAmp * Math.sin(k * r - mouseFreq * T) / (1 + r * 0.35);
+        }
+        const chAmp = fluidMat.uniforms.uChladniAmp.value;
+        f += chAmp * Math.sin(chladniKx * bx) * Math.sin(chladniKy * by);
+        return f;
+      }
+
+      function deformCircles(T) {
+        for (const c of circles) {
+          const posAttr = c.geometry.attributes.position;
+          const base = c.userData.basePositions;
+          const M = posAttr.count;
+          const arr = posAttr.array;
+          for (let i = 0; i < M; i++) {
+            const bx = base[i*3];
+            const by = base[i*3+1];
+            const bz = base[i*3+2];
+            const f = scalarFieldJS(bx, by, bz, T);
+            const dispR = f * 0.07;   // subtle radial breathe
+            const n2 = bx*bx + by*by;
+            if (n2 > 1e-4) {
+              const inv = 1 / Math.sqrt(n2);
+              arr[i*3]   = bx + bx * inv * dispR;
+              arr[i*3+1] = by + by * inv * dispR;
+            } else {
+              arr[i*3]   = bx;
+              arr[i*3+1] = by;
+            }
+            arr[i*3+2] = bz + f * 0.022;
+          }
+          posAttr.needsUpdate = true;
+        }
+      }
+
+      // Sculptural base tilt + per-load starting angle
+      const baseTiltX = 0.28;
       assembly.rotation.x = baseTiltX;
       assembly.rotation.z = rng() * Math.PI * 2;
 
@@ -701,63 +629,96 @@
         camera.updateProjectionMatrix();
         const isWide = aspect >= 1.4;
         const isMed  = aspect >= 0.95;
-        assembly.position.x = isWide ? 1.6 : (isMed ? 0.7 : 0);
+        assembly.position.x = isWide ? 1.2 : (isMed ? 0.5 : 0);
         assembly.scale.setScalar(isWide ? 1.0 : (isMed ? 0.9 : 0.82));
         fluidMat.uniforms.uPixelRatio.value = renderer.getPixelRatio();
       }
       resize();
       window.addEventListener('resize', resize);
 
-      const cursor = { x: 0, y: 0, tx: 0, ty: 0 };
+      // ============================================================
+      // MOUSE = EMITTER (not magnet)
+      //   Cursor position → world plane at z=0 → assembly-local space.
+      //   Amplitude is fed by motion, decays when idle. No assembly rotation
+      //   response; interaction lives inside the physics, not on the transform.
+      // ============================================================
+      const raycaster = new THREE.Raycaster();
+      const mouseNDC  = new THREE.Vector2();
+      const _tmpWorld = new THREE.Vector3();
+      const _plane    = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+
+      let pendingPointer = null;
       window.addEventListener('pointermove', (e) => {
-        cursor.tx = (e.clientX / window.innerWidth  - 0.5) * 2;
-        cursor.ty = (e.clientY / window.innerHeight - 0.5) * 2;
+        pendingPointer = { x: e.clientX, y: e.clientY };
+      }, { passive: true });
+      window.addEventListener('touchmove', (e) => {
+        if (e.touches.length) {
+          pendingPointer = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
       }, { passive: true });
 
+      function pumpPointer() {
+        if (!pendingPointer) return;
+        mouseNDC.x =  (pendingPointer.x / window.innerWidth)  * 2 - 1;
+        mouseNDC.y = -(pendingPointer.y / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouseNDC, camera);
+        if (raycaster.ray.intersectPlane(_plane, _tmpWorld)) {
+          const clone = _tmpWorld.clone();
+          assembly.worldToLocal(clone);
+          mouseLocal.copy(clone);
+          fluidMat.uniforms.uMousePos.value.copy(mouseLocal);
+          // Fresh motion → hold amplitude at 1. Idle → let it decay in tick().
+          mouseAmp = 1.0;
+        }
+        pendingPointer = null;
+      }
+
+      // ============================================================
+      // TICK
+      // ============================================================
       const clock = new THREE.Clock();
       let ready = false;
 
       function tick() {
         const t = clock.getElapsedTime();
-        const T = t * SPEED; // "slow time" — all animation drives off this
+        const T = t * SPEED;
 
-        // Ink layer spins (each layer scaled uniformly by SPEED)
-        for (const l of spinners) l.obj.rotation.z += l.spin * SPEED;
+        // 1. Update assembly transform first so worldToLocal in pumpPointer uses the current frame.
+        const driftY = Math.sin(T * 0.075) * 0.22;
+        const driftX = Math.sin(T * 0.11)  * 0.05;
+        assembly.rotation.y = driftY;
+        assembly.rotation.x = baseTiltX + driftX;
+        assembly.updateMatrixWorld(true);
 
-        // Slow drift on the assembly
-        const driftY = Math.sin(T * 0.075) * 0.26;
-        const driftX = Math.sin(T * 0.11)  * 0.06;
-        cursor.x += (cursor.tx - cursor.x) * 0.035 * SPEED;
-        cursor.y += (cursor.ty - cursor.y) * 0.035 * SPEED;
-        assembly.rotation.y = driftY + cursor.x * 0.22;
-        assembly.rotation.x = baseTiltX + driftX - cursor.y * 0.12;
+        // 2. Absorb pending cursor motion → mouse emitter local pos + amplitude bump.
+        pumpPointer();
 
-        // Fluid uniforms — a single time drives noise scroll + traveling wave
+        // 3. Amplitude decay (frame-rate assumed ≈ 60 → ~2s to fade). If it's uneven,
+        //    the physics still works; just the fade timing wobbles.
+        mouseAmp *= 0.985;
+        if (mouseAmp < 0.001) mouseAmp = 0;
+        fluidMat.uniforms.uMouseAmp.value = mouseAmp;
+
+        // 4. Standing-wave amplitude: very slow rise and recede over ~180 s so
+        //    nodal patterns emerge and dissolve, never stuck.
+        fluidMat.uniforms.uChladniAmp.value = 0.20 * (0.5 + 0.5 * Math.sin(T * 0.035));
+
+        // 5. Fluid time uniform — drives the whole wave field.
         fluidMat.uniforms.uTime.value = T;
 
-        // Green line breathes very slowly between ~0.10 and ~0.42
-        greenTrace.material.opacity = 0.10 + 0.32 * (0.5 + 0.5 * Math.sin(T * 0.055));
+        // 6. Circles: sample the same field and deform.
+        deformCircles(T);
 
-        // Ink dust orbit + gentle z-shimmer
-        const pa = dust.geometry.attributes.position;
-        for (let i = 0; i < PC; i++) {
-          const r = dMeta[i*4];
-          const baseA = dMeta[i*4+1];
-          const freq = dMeta[i*4+2];
-          const z0 = dMeta[i*4+3];
-          const drift = Math.sin(T * 0.18 * freq + i * 0.13) * 0.05;
-          const a = baseA + T * (i % 3 === 0 ? -0.014 : 0.019);
-          pa.array[i*3]   = Math.cos(a) * (r + drift);
-          pa.array[i*3+1] = Math.sin(a) * (r + drift);
-          pa.array[i*3+2] = z0 + Math.sin(T * 0.42 + i * 0.71) * 0.07;
-        }
-        pa.needsUpdate = true;
-
+        // 7. Render. First frame = still opacity 0 on canvas → then trigger crossfade.
         renderer.render(scene, camera);
 
         if (!ready) {
           ready = true;
-          requestAnimationFrame(() => document.body.classList.add('webgl-ready'));
+          // Double-rAF: guarantees the first frame is presented before the CSS
+          // transition kicks in, so the crossfade shows animation, not a pop.
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => document.body.classList.add('webgl-ready'))
+          );
         }
         requestAnimationFrame(tick);
       }
