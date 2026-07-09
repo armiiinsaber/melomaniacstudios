@@ -65,7 +65,7 @@ CSS pattern:
 }
 ```
 
-The wordmark ships as SVG with `<text>` in the house cut — clean type, no decorative overlays. `textLength` locks each line's width in SVG units so font-metric variance can't overflow the viewBox at any breakpoint.
+The wordmark ships as **plain HTML text** in the house cut. Two block spans, one per line ("Melomaniac" roman + "Studios" italic), sized via `font-size: clamp(2.5rem, 13vw, 12rem)` so the type scales fluidly with the viewport without ever distorting glyph proportions. SVG rendering was tried and rejected: raster-fit `viewBox` sizing clipped at wide viewports, and `textLength / lengthAdjust="spacingAndGlyphs"` (the fix) visibly stretched Fraunces's glyphs. HTML text can neither clip nor distort — glyphs render at Fraunces's natural drawing.
 
 **Follow-up (design pass, logged so it doesn't rot):** the fully-bespoke logotype needs a font-to-paths pipeline (offline design work — fontkit / opentype.js at build time, or a manual Illustrator/Figma pass). At that pass, flatten the house-cut Fraunces glyphs to outline paths and hand-modify 2–3 letterforms so the mark is truly proprietary — candidate surgery: a distinctive cut on the M's apex, a custom St relationship, a cropped terminal on the final s. Approximating this in the browser with stroked SVG paths (e.g. a "signature hairline") reads as a stray border cutting through the type, not as bespoke — so we don't ship that placeholder.
 
