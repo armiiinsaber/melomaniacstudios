@@ -54,6 +54,33 @@ All notable changes to the Melomaniac Studios site rebuild.
   trace, and dropped particle-green share to ~8% so the LineLoop carries the
   ration. Reads as one living green current through the ink drawing.
 
+### Changed — hero, third pass (fluid + tempo)
+- **20% slower across the board.** All animation now runs off a single
+  `SPEED = 0.80` multiplier applied to a derived "slow time" `T = t * SPEED`.
+  Layer spins, assembly drift, cursor easing, ink dust, fluid noise, fluid
+  wave, and green-line breath all pass through `SPEED`, so tuning stays
+  internally proportional. CSS `scrollpulse` bumped 2.8s → 3.5s to match.
+- **New green fluid-form** — a `THREE.Points` field with a `ShaderMaterial`:
+  simplex-noise flow field (3 offset samples, time-scrolling coord for the
+  "drifts like smoke" feel) plus a planar traveling wave that modulates both
+  displacement amplitude and per-particle alpha. Green-primary (~85 %), ink
+  minority (~15 %), sharp print-like discs (tight `smoothstep` alpha, `discard`
+  at edges — no glow). `NormalBlending` with `depthWrite: false` — never
+  additive on ivory. Seeded per load: flow direction, wave direction/frequency/
+  speed, tilt, and z-offset all vary. Sits inside the assembly so it inherits
+  the same offset/scale as the architecture, but has its own tilt so it visibly
+  crosses through the rosette plane.
+- **Particle-count tiers** (drop first if it chugs): 3200 ≥1400w, 2400 ≥1000w,
+  1500 ≥640w, 900 below.
+- **Green rebalanced.** The single-continuous LineLoop stays but its opacity
+  now breathes on a very slow (~114s) cycle between ~0.10 and ~0.42, so it
+  reads as a rising accent rather than the primary green source. The old green
+  ring is gone. Ink drift dust is 100% ink now — total green budget lives in
+  the fluid + the LineLoop's occasional swell.
+- **SVG poster** now includes a seeded green-primary particle scatter along
+  the seeded flow direction, so both the WebGL cross-fade and the reduced-
+  motion display carry the same "fluid" DNA.
+
 ### Pending review
 - Serving locally at http://127.0.0.1:4200 — awaiting founder approval on the
   moving piece before styling any other section (per DESIGN.md §7 workflow).
