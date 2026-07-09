@@ -260,23 +260,36 @@
       });
     }
 
-    // Static wavepacket snapshot at a fixed "mid-decay" tau per emitter.
-    // Approximates the WebGL model (beat rings expanding at c=2, gaussian ring).
-    const TAU_SNAPSHOT = 0.45;
-    const C = 2.0;
-    const SIGMA = 0.5;
+    // Static snapshot at t = SNAP_T with the SAME causal 4-beat wave model
+    // as the WebGL side. Beats fire at 0, p, 2p, 3p, 4p (idx=4 = downbeat);
+    // T_SNAP is 0.15 s after beat 4, matching CLOCK_PREADVANCE. So poster
+    // and first live frame agree.
+    const BP     = 60 / 110;
+    const SP     = 0.80;
+    const SNAP_T = BP * 4 + 0.15;
+    const C      = 2.0;
     function scalarField(x, y) {
       let f = 0;
-      const ringR = C * TAU_SNAPSHOT;
-      const ageEnv = Math.exp(-TAU_SNAPSHOT / 0.32);
       for (const e of emitters) {
         const dx = x - e.x, dy = y - e.y;
-        const r = Math.hypot(dx, dy);
-        const k = e.omega * 0.5;
-        const distFromRing = r - ringR;
-        const ringEnv = Math.exp(-(distFromRing * distFromRing) / (2 * SIGMA * SIGMA));
-        const phase = k * r - e.omega * TAU_SNAPSHOT + e.phase;
-        f += e.amp * ringEnv * ageEnv * Math.cos(phase) / (1 + r * 0.15);
+        const r  = Math.hypot(dx, dy);
+        const k  = e.omega * 0.5;
+        // 4 tracked beats: indices 4, 3, 2, 1 (most-recent first).
+        for (let m = 0; m < 4; m++) {
+          const bi   = 4 - m;                 // beat index 4, 3, 2, 1
+          const bt   = bi * BP;
+          const bAmp = (bi % 4 === 0) ? 1.35 : 0.85;
+          const tau  = (SNAP_T - bt) * SP;
+          if (tau <= 0) continue;
+          const tauLocal = tau - r / C;
+          if (tauLocal < 0) continue;
+          const attack    = 1 - Math.exp(-tauLocal / 0.03);
+          const localDec  = Math.exp(-tauLocal / 0.20);
+          const globalDec = Math.exp(-tau      / 0.35);
+          const env       = attack * localDec * globalDec;
+          const ph        = k * r - e.omega * tau + e.phase;
+          f += e.amp * bAmp * env * Math.cos(ph) / (1 + r * 0.15);
+        }
       }
       return f;
     }
@@ -478,8 +491,12 @@
         uniform vec3  uEAmps;
         uniform vec3  uEPhases;
 
-        uniform vec3  uBeatTimes;        // (t_beat_-0, t_beat_-1, t_beat_-2) most recent → oldest
-        uniform vec3  uBeatAmps;         // matching per-beat amplitude (downbeat accent)
+        // 4 most recent beat times & amplitudes (most recent → oldest).
+        // Tracking 4 (not 3) is what makes recycling continuous: at slot reuse
+        // the oldest beat has τ_eff = 4·p·SPEED ≈ 1.744 s → global envelope
+        // exp(−1.744/0.35) ≈ 0.7 %, safely under the 1 % pop threshold.
+        uniform vec4  uBeatTimes;
+        uniform vec4  uBeatAmps;
 
         uniform vec3  uMousePos;
         uniform float uMouseAmp;
@@ -495,25 +512,48 @@
         varying vec3  vColor;
         varying float vAlpha;
 
-        // Scalar contribution of one beat from one emitter.
-        // Returned as vec2(u, one_over_falloff) so we can compute vector
-        // contribution outside by multiplying by dir once.
-        //   u = amp · beatAmp · ringEnv · ageEnv · cos(k·r − ω·τ + φ) / (1 + α·r)
-        //     ringEnv = exp(−(r − c·τ)² / 2σ²),  σ = 0.5, c = 2
-        //     ageEnv  = exp(−τ / 0.32)
-        //   Returns 0 if the beat hasn't fired yet (bt < 0 sentinel).
+        // Scalar contribution of one beat from one emitter — CAUSAL wave.
+        //
+        // The previous formulation was NOT causal: a Gaussian ring centered at
+        // r = c·τ leaks amplitude ahead of the wavefront, so at τ = 0 a
+        // particle at r > 0 already saw ~exp(−r²/0.5) · cos(k·r+φ) worth of
+        // signal — that appeared instantaneously at each beat fire = pop.
+        //
+        // This form is causal: signal is exactly zero until the wavefront
+        // arrives (τ_local = τ − r/c ≥ 0), then a smooth attack (~30 ms) rises
+        // into a local exponential decay that shapes the ring behind the
+        // wavefront, all multiplied by a global exponential that fades the
+        // beat's total energy over its lifetime. Every factor is C∞ in t,
+        // so every transition — beat fire, beat drop, sample motion — is
+        // continuous by construction.
+        //
+        //   τ         = uSpeedScale · (t − beatTime)                (physics time)
+        //   τ_local   = τ − r/c                                    (time since arrival)
+        //   attack    = 1 − exp(−τ_local / 0.03)                   (~30 ms fast rise)
+        //   localDec  = exp(−τ_local / 0.20)                        (ring shape behind front)
+        //   globalDec = exp(−τ / 0.35)                              (beat lifetime)
+        //   u         = amp · beatAmp · attack · localDec · globalDec
+        //             · cos(k·r − ω·τ + φ) / (1 + α·r)
+        //
+        // Returns 0 if beatTime is the sentinel (< 0), if the beat hasn't
+        // fired yet (τ ≤ 0), or if the wave hasn't reached this radius yet
+        // (τ_local < 0). All three checks return the same value on either
+        // side of their boundary, so u itself is continuous — see notes.
         float beatContrib(float r, float omega, float phase, float amp,
                           float beatTime, float beatAmp, float t) {
           if (beatTime < 0.0) return 0.0;
           float tau = (t - beatTime) * uSpeedScale;
           if (tau <= 0.0) return 0.0;
-          float k = omega * 0.5;         // c = ω/k = 2
-          float ringR = 2.0 * tau;
-          float distFromRing = r - ringR;
-          float ringEnv = exp(-(distFromRing * distFromRing) / 0.5);   // 2·σ² with σ=0.5
-          float ageEnv  = exp(-tau / 0.32);
+          float c = 2.0;
+          float tauLocal = tau - r / c;
+          if (tauLocal < 0.0) return 0.0;
+          float attack     = 1.0 - exp(-tauLocal / 0.03);
+          float localDec   = exp(-tauLocal / 0.20);
+          float globalDec  = exp(-tau      / 0.35);
+          float envelope   = attack * localDec * globalDec;
+          float k  = omega * 0.5;
           float ph = k * r - omega * tau + phase;
-          return amp * beatAmp * ringEnv * ageEnv * cos(ph) / (1.0 + r * 0.15);
+          return amp * beatAmp * envelope * cos(ph) / (1.0 + r * 0.15);
         }
 
         // Continuous sinusoidal wave (used only by the mouse emitter — its
@@ -527,32 +567,32 @@
         void main() {
           vec3 basePos = position;
 
-          // Emitter 0
+          // Emitter 0 — sum contributions from the 4 tracked beats.
           vec3  d0   = basePos - uE0Pos;
           float r0   = length(d0);
           vec3  dir0 = d0 / max(r0, 0.001);
-          float u00  = beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.x, uBeatAmps.x, uTime);
-          float u01  = beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.y, uBeatAmps.y, uTime);
-          float u02  = beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.z, uBeatAmps.z, uTime);
-          float uE0  = u00 + u01 + u02;
+          float uE0  = beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.x, uBeatAmps.x, uTime)
+                     + beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.y, uBeatAmps.y, uTime)
+                     + beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.z, uBeatAmps.z, uTime)
+                     + beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.w, uBeatAmps.w, uTime);
 
           // Emitter 1
           vec3  d1   = basePos - uE1Pos;
           float r1   = length(d1);
           vec3  dir1 = d1 / max(r1, 0.001);
-          float u10  = beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.x, uBeatAmps.x, uTime);
-          float u11  = beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.y, uBeatAmps.y, uTime);
-          float u12  = beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.z, uBeatAmps.z, uTime);
-          float uE1  = u10 + u11 + u12;
+          float uE1  = beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.x, uBeatAmps.x, uTime)
+                     + beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.y, uBeatAmps.y, uTime)
+                     + beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.z, uBeatAmps.z, uTime)
+                     + beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.w, uBeatAmps.w, uTime);
 
           // Emitter 2
           vec3  d2   = basePos - uE2Pos;
           float r2   = length(d2);
           vec3  dir2 = d2 / max(r2, 0.001);
-          float u20  = beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.x, uBeatAmps.x, uTime);
-          float u21  = beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.y, uBeatAmps.y, uTime);
-          float u22  = beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.z, uBeatAmps.z, uTime);
-          float uE2  = u20 + u21 + u22;
+          float uE2  = beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.x, uBeatAmps.x, uTime)
+                     + beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.y, uBeatAmps.y, uTime)
+                     + beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.z, uBeatAmps.z, uTime)
+                     + beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.w, uBeatAmps.w, uTime);
 
           vec3  vecField    = dir0 * uE0 + dir1 * uE1 + dir2 * uE2;
           float scalarField = uE0 + uE1 + uE2;
@@ -628,8 +668,8 @@
           uEOmegas:     { value: new THREE.Vector3(emitters[0].omega, emitters[1].omega, emitters[2].omega) },
           uEAmps:       { value: new THREE.Vector3(emitters[0].amp,   emitters[1].amp,   emitters[2].amp) },
           uEPhases:     { value: new THREE.Vector3(emitters[0].phase, emitters[1].phase, emitters[2].phase) },
-          uBeatTimes:   { value: new THREE.Vector3(-1, -1, -1) },
-          uBeatAmps:    { value: new THREE.Vector3( 0,  0,  0) },
+          uBeatTimes:   { value: new THREE.Vector4(-1, -1, -1, -1) },
+          uBeatAmps:    { value: new THREE.Vector4( 0,  0,  0,  0) },
           uMousePos:    { value: mouseLocal },
           uMouseAmp:    { value: 0 },
           uMouseFreq:   { value: mouseFreq },
@@ -672,29 +712,36 @@
       ];
       circles.forEach(c => assembly.add(c));
 
-      // JS mirror of one beat's scalar contribution (matches shader beatContrib).
+      // JS mirror of one beat's scalar contribution — EXACT copy of the
+      // shader's beatContrib (causal wave, attack + local + global decay).
+      // Keep this in lockstep with the shader or circles will disagree with
+      // particles.
       function beatContribJS(r, omega, phase, amp, beatTime, beatAmp, t) {
         if (beatTime < 0) return 0;
         const tau = (t - beatTime) * SPEED;
         if (tau <= 0) return 0;
-        const k = omega * 0.5;
-        const ringR = 2.0 * tau;
-        const distFromRing = r - ringR;
-        const ringEnv = Math.exp(-(distFromRing * distFromRing) / 0.5);
-        const ageEnv  = Math.exp(-tau / 0.32);
+        const c = 2.0;
+        const tauLocal = tau - r / c;
+        if (tauLocal < 0) return 0;
+        const attack    = 1 - Math.exp(-tauLocal / 0.03);
+        const localDec  = Math.exp(-tauLocal / 0.20);
+        const globalDec = Math.exp(-tau      / 0.35);
+        const envelope  = attack * localDec * globalDec;
+        const k  = omega * 0.5;
         const ph = k * r - omega * tau + phase;
-        return amp * beatAmp * ringEnv * ageEnv * Math.cos(ph) / (1 + r * 0.15);
+        return amp * beatAmp * envelope * Math.cos(ph) / (1 + r * 0.15);
       }
-      // JS mirror of full scalar field. Used by circle deform.
+      // JS mirror of full scalar field. Loops over 4 tracked beats (to match
+      // the shader). Used by circle deform.
       function scalarFieldJS(bx, by, bz, T, beatTimes, beatAmps) {
         let f = 0;
         for (let j = 0; j < 3; j++) {
           const e = emitters[j];
           const dx = bx - e.pos.x, dy = by - e.pos.y, dz = bz - e.pos.z;
           const r  = Math.sqrt(dx*dx + dy*dy + dz*dz);
-          f += beatContribJS(r, e.omega, e.phase, e.amp, beatTimes[0], beatAmps[0], T);
-          f += beatContribJS(r, e.omega, e.phase, e.amp, beatTimes[1], beatAmps[1], T);
-          f += beatContribJS(r, e.omega, e.phase, e.amp, beatTimes[2], beatAmps[2], T);
+          for (let b = 0; b < 4; b++) {
+            f += beatContribJS(r, e.omega, e.phase, e.amp, beatTimes[b], beatAmps[b], T);
+          }
         }
         if (mouseAmp > 0.001) {
           const dx = bx - mouseLocal.x, dy = by - mouseLocal.y, dz = bz - mouseLocal.z;
@@ -786,41 +833,58 @@
       }
 
       // ── Beat clock ───────────────────────────────────────────────────
-      const beatTimesArr = [-1, -1, -1];
-      const beatAmpsArr  = [ 0,  0,  0];
+      // 4 slots, most-recent → oldest. See the shader comment on uBeatTimes
+      // for why 4: at slot reuse τ_eff = 4·p·SPEED ≈ 1.744 s, the wave/kick
+      // envelope exp(−1.744/0.35) ≈ 0.7 % — safely under the 1 % pop threshold.
+      const beatTimesArr = [-1, -1, -1, -1];
+      const beatAmpsArr  = [ 0,  0,  0,  0];
       function updateBeatState(T) {
         const idx = Math.floor(T / BEAT_PERIOD);
-        for (let k = 0; k < 3; k++) {
+        for (let k = 0; k < 4; k++) {
           const bi = idx - k;
           if (bi >= 0) {
             beatTimesArr[k] = bi * BEAT_PERIOD;
-            // Downbeat every 4th beat (bar structure): index 0, 4, 8, …
             beatAmpsArr[k]  = (bi % 4 === 0) ? 1.35 : 0.85;
           } else {
+            // Sentinel: shader treats < 0 as "not fired yet" → contribution 0.
             beatTimesArr[k] = -1;
             beatAmpsArr[k]  = 0;
           }
         }
-        fluidMat.uniforms.uBeatTimes.value.set(beatTimesArr[0], beatTimesArr[1], beatTimesArr[2]);
-        fluidMat.uniforms.uBeatAmps.value.set(beatAmpsArr[0],   beatAmpsArr[1],   beatAmpsArr[2]);
+        fluidMat.uniforms.uBeatTimes.value.set(beatTimesArr[0], beatTimesArr[1], beatTimesArr[2], beatTimesArr[3]);
+        fluidMat.uniforms.uBeatAmps.value.set(beatAmpsArr[0],   beatAmpsArr[1],   beatAmpsArr[2], beatAmpsArr[3]);
 
-        // Kick envelope for global size/brightness modulation.
-        // Attack ~30 ms → exponential decay ~300 ms, all in effective time.
-        const tau0 = (T - beatTimesArr[0]) * SPEED;
-        const attack = Math.min(tau0 / 0.030, 1.0);
-        const decay  = Math.exp(-Math.max(0, tau0 - 0.030) / 0.30);
-        const isDown = beatAmpsArr[0] > 1.0;
-        const peak   = isDown ? 0.30 : 0.18;
-        fluidMat.uniforms.uKickBoost.value = attack * decay * peak;
+        // Kick envelope — SUMMED over all tracked beats for C∞ continuity.
+        //   env(t) = Σ_k A_k · (1 − exp(−τ_k/0.03)) · exp(−τ_k/0.35)
+        // Each new beat starts with attack = 0 (grows continuously), so the
+        // sum has no step at beat boundaries. The old slot-2 (previous
+        // single-beat) formulation reset to zero on each beat = the pop.
+        // Peaks tuned so downbeats sit visibly above regular beats.
+        let kick = 0;
+        for (let k = 0; k < 4; k++) {
+          const bt = beatTimesArr[k];
+          if (bt < 0) continue;
+          const tauK = (T - bt) * SPEED;
+          if (tauK <= 0) continue;
+          const attackK = 1 - Math.exp(-tauK / 0.03);
+          const decayK  = Math.exp(-tauK / 0.35);
+          const isDownK = beatAmpsArr[k] > 1.0;
+          const peakK   = isDownK ? 0.55 : 0.30;
+          kick += peakK * attackK * decayK;
+        }
+        fluidMat.uniforms.uKickBoost.value = kick;
 
         // Chladni amplitude — very slow rise/recede over minutes.
         fluidMat.uniforms.uChladniAmp.value = 0.10 * (0.5 + 0.5 * Math.sin(T * SPEED * 0.035));
       }
 
       // ── Pre-advance the clock so the FIRST FRAME shows the piece already ──
-      // alive — several beats already fired, rings mid-flight. Without this,
-      // the very first render happens at T=0 with no waves in the field yet.
-      const CLOCK_PREADVANCE = BEAT_PERIOD * 2 + 0.10;   // ~1.19 s
+      // alive with all 4 beat slots filled. Land 0.15 s after the 4th beat
+      // fires (idx=4 = downbeat), so at first paint we see a fresh downbeat
+      // ring at r ≈ 0.24 plus 3 older rings mid-propagation. Without this,
+      // the very first render happens with fewer active beats and the
+      // composition is thinner than steady state.
+      const CLOCK_PREADVANCE = BEAT_PERIOD * 4 + 0.15;   // ~2.33 s
       const clock = new THREE.Clock(false);
       function currentT() { return clock.getElapsedTime() + CLOCK_PREADVANCE; }
 

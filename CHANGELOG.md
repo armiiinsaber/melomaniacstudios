@@ -203,6 +203,58 @@ All notable changes to the Melomaniac Studios site rebuild.
   accent, mouse-as-emitter, `SPEED = 0.80` physics knob, first-paint
   contract, poster-as-fallback-only.
 
+### Fixed — hero, seventh pass (mathematically seamless beat transitions)
+Three separate discontinuity sources produced the "cut" at every beat.
+Each one traced to its root and fixed.
+
+- **Wave contribution wasn't causal.** The Gaussian ring
+  `exp(−(r − c·τ)² / 2σ²)` is symmetric around the wavefront, so at
+  `τ = 0` a particle at `r > 0` already saw a nonzero value — the ring's
+  "leading edge" leaked ahead of the wavefront. So every new beat
+  instantly imprinted amplitude on every particle at once = pop.
+  **Fix:** genuine causal wave.
+  ```
+  τ_local = τ − r/c                                (time since arrival)
+  if τ_local < 0 → 0                              (wave hasn't arrived)
+  attack     = 1 − exp(−τ_local / 0.03)           (~30 ms smooth attack)
+  localDec   = exp(−τ_local / 0.20)               (ring shape behind front)
+  globalDec  = exp(−τ / 0.35)                     (beat lifetime)
+  u          = A·βₖ·attack·localDec·globalDec·cos(k·r − ω·τ + φ) / (1+α·r)
+  ```
+  At the wavefront `τ_local = 0` so `attack = 0` → u is 0 on both sides of
+  the arrival boundary. C0-continuous everywhere.
+- **Kick envelope was single-beat.** Previous code used
+  `attack(τ₀)·decay(τ₀)·peak` on `beatTimesArr[0]` alone → at every beat
+  boundary `τ₀ = 0` → `attack = 0` → the kick collapsed. **Fix:** sum
+  the envelope over all 4 tracked beats:
+  ```
+  env(t) = Σₖ Aₖ · (1 − exp(−τₖ/0.03)) · exp(−τₖ/0.35)
+  ```
+  Each new beat enters the sum with `attack = 0` growing smoothly; the
+  old beats continue their own smooth decay. C∞-continuous through beat
+  boundaries. Peaks bumped (`0.30 → 0.55` down, `0.18 → 0.30` reg) to
+  compensate for the now-shared amplitude across beats.
+- **Slot recycling dropped nonzero amplitude.** With 3 tracked beats
+  and `τ_decay = 0.32 s`, the oldest slot at recycle time held
+  `τ_eff ≈ 1.31 s` → envelope `exp(−1.31/0.32) ≈ 1.7 %` = a visible
+  1.7 % pop. **Fix:** raise to **4 slots** + `T_GLOBAL = 0.35 s`. At
+  recycle `τ_eff = 4·p·SPEED ≈ 1.744 s` → envelope `≈ 0.7 %`, safely
+  under the 1 % threshold the user asked for. `uBeatTimes` /
+  `uBeatAmps` upgraded `vec3 → vec4`; shader main() loops the 4 beats
+  per emitter (12 wave calls per particle); JS mirror + kick sum
+  match.
+- **No per-beat re-randomization audit.** Verified: `emitters`
+  (positions/ω/A/φ), particle `pos/aSize/aAlpha/aColor`, `chladniKx/Ky`,
+  `mouseFreq` are all set once at load and never touched. Only
+  `uBeatTimes / uBeatAmps / uKickBoost / uChladniAmp / uMouseAmp /
+  uMousePos / uTime` mutate per frame — every one continuous.
+- **`CLOCK_PREADVANCE`** bumped `1.19 s → 2.33 s` (4·p + 0.15 s) so
+  first-paint has all 4 slots filled with a fresh downbeat and 3 older
+  rings mid-propagation — matches steady state exactly, no early-frames
+  thinness.
+- **SVG poster** rewritten with the same causal 4-beat sum at
+  `T_SNAP = 2.33 s`, so poster field and first live frame agree.
+
 ### Pending review
 - Serving locally at http://127.0.0.1:4200 — awaiting founder approval on
   the moving piece before styling any other section (per DESIGN.md §7).
