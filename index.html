@@ -150,15 +150,32 @@
     }
 
     .hero-main {
+      /* No max-width — wordmark scales fluidly via its own clamp; tagline
+         has its own max-width for readability, so we don't need to pinch
+         the whole column. */
       align-self: center;
-      max-width: min(60ch, 100%);
+      max-width: 100%;
       display: flex; flex-direction: column;
       gap: 1.4rem;
+      min-width: 0;
     }
     .hero-wordmark {
+      /*
+        Fluid scaling: width clamps between 280 px on tiny screens and
+        1120 px on wide desktop. The SVG inside is width:100% of the
+        wordmark, and its internal viewBox (1180×320) has ~7 % right-side
+        headroom so the text can never overflow. `textLength` inside the
+        SVG locks the two lines to fixed SVG-unit widths, so font-metric
+        variance (opsz, fallback fonts) can't push the glyphs past the
+        viewBox edge either.
+
+        Tested at 1440 / 1024 / 768 / 390 — wordmark stays inside the
+        viewport with breathing room at every width.
+      */
       color: var(--ink);
       display: block;
-      width: clamp(280px, 62vw, 780px);
+      width: clamp(280px, 82vw, 1120px);
+      max-width: 100%;
       margin: 0;
       line-height: 0;
     }
@@ -167,6 +184,7 @@
       width: 100%;
       height: auto;
       color: currentColor;
+      overflow: visible;    /* belt-and-braces so nothing clips inside SVG */
     }
     .wordmark-fallback {
       position: absolute; width: 1px; height: 1px;
@@ -498,23 +516,21 @@
             <!-- Accessible fallback text. -->
             <span class="wordmark-fallback">Melomaniac Studios</span>
             <!--
-              Bespoke wordmark SVG.
+              Wordmark SVG.
               — Two lines set in the house cut Fraunces (opsz 144, wght 300, SOFT 40, WONK 0).
-              — One hand-drawn signature: a hairline "brand rule" below the wordmark
-                gesturing right, then hooking down toward Studios. This is the honest
-                first-pass bespoke element. A fully flattened-to-paths version with
-                hand-modified letterforms is a follow-up pass (needs a font tool).
+              — viewBox 1180×320 with ~7 % right-side headroom past the locked textLengths
+                so no font-metric variance can overflow.
+              — textLength / lengthAdjust="spacingAndGlyphs" locks each line's width to a
+                fixed value in SVG units — makes rendering deterministic across environments.
+              — NO decorative overlay strokes. Ships as clean type in the house cut.
+                Fully-bespoke letterform surgery (flatten-to-paths + hand-modified M/St/final s)
+                is a follow-up design pass documented in DESIGN.md.
             -->
-            <svg class="wordmark-svg" viewBox="0 0 720 268" role="img" aria-hidden="true" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+            <svg class="wordmark-svg" viewBox="0 0 1180 320" role="img" aria-hidden="true" preserveAspectRatio="xMinYMid meet" xmlns="http://www.w3.org/2000/svg">
               <g fill="currentColor" style="font-family: 'Fraunces', 'Instrument Serif', Georgia, serif; font-variation-settings: 'opsz' 144, 'wght' 300, 'SOFT' 40, 'WONK' 0;">
-                <text x="0"  y="146" font-size="176" letter-spacing="-4">Melomaniac</text>
-                <text x="10" y="246" font-size="120" font-style="italic" letter-spacing="-3">Studios</text>
+                <text x="0"  y="150" font-size="176" textLength="1100" lengthAdjust="spacingAndGlyphs">Melomaniac</text>
+                <text x="14" y="290" font-size="120" font-style="italic" textLength="500" lengthAdjust="spacingAndGlyphs">Studios</text>
               </g>
-              <!-- Bespoke signature hairline. Sits between the two words, gestures right and
-                   hooks into the italic Studios — the one custom stroke that makes this a logotype. -->
-              <path d="M 0 170 L 630 170 L 630 200"
-                    stroke="currentColor" stroke-width="3" fill="none"
-                    stroke-linecap="butt" stroke-linejoin="miter" opacity="0.75"/>
             </svg>
           </h1>
           <p class="hero-tagline">A house for sound.</p>

@@ -65,7 +65,9 @@ CSS pattern:
 }
 ```
 
-The wordmark ships as SVG with `<text>` in the house cut plus a hand-drawn bespoke overlay (currently a single signature hairline; a fully flattened-to-paths version with hand-modified letterforms is a follow-up pass that needs a font-to-paths tool — noted so this doesn't rot into "we forgot to do it").
+The wordmark ships as SVG with `<text>` in the house cut — clean type, no decorative overlays. `textLength` locks each line's width in SVG units so font-metric variance can't overflow the viewBox at any breakpoint.
+
+**Follow-up (design pass, logged so it doesn't rot):** the fully-bespoke logotype needs a font-to-paths pipeline (offline design work — fontkit / opentype.js at build time, or a manual Illustrator/Figma pass). At that pass, flatten the house-cut Fraunces glyphs to outline paths and hand-modify 2–3 letterforms so the mark is truly proprietary — candidate surgery: a distinctive cut on the M's apex, a custom St relationship, a cropped terminal on the final s. Approximating this in the browser with stroked SVG paths (e.g. a "signature hairline") reads as a stray border cutting through the type, not as bespoke — so we don't ship that placeholder.
 
 Layout & texture:
 - Generous margins; a visible but quiet grid. Hairline rules (1px, `--hairline`) as the only borders — no rounded cards, no glows, no drop shadows except on the 3D render itself.
