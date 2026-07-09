@@ -174,6 +174,35 @@ All notable changes to the Melomaniac Studios site rebuild.
 - **Chladni** kept as background pattern at reduced amplitude (0.10 peak
   vs 0.20 before) — subtle nodal grid underneath the beats.
 
+### Fixed — hero, sixth pass (cloud is always visible)
+- **Existence separated from excitation.** In the previous pass, particle
+  alpha and size were both gated by `smoothstep(|field|)`, so on a still
+  field a large fraction of the cloud dropped to ~14% of baseline —
+  effectively invisible. Only zones where a wavepacket happened to be
+  passing were lit. On page load this read as "empty page with a corner
+  of dots."
+- **New model — baseline + boost.**
+  - `aAlpha` and `aSize` are the per-particle *resting* values. Every
+    particle is drawn every frame in the seeded composition, with no
+    field gating on visibility.
+  - Excitation (`smoothstep(0.05, 0.6, |scalar_field|)`) *only adds* on
+    top: alpha × up to `+140 %` at wavefront peaks (clamped to 1.0 in
+    the fragment output → peaks max at full opacity, matching the spec
+    "up to ~1.0 alpha at wavefronts"), size × up to `+55 %`.
+  - Kick boost still layered on top (`+50 %` alpha, `+35 %` size at
+    downbeat peak).
+- **`aAlpha` range retuned** from `0.45–0.95` to `0.35–0.55` — this is
+  now the actual resting alpha per particle, matching the "~0.35–0.5"
+  target in the spec. Mean baseline ≈ 0.45.
+- **SVG poster mirrors the new model.** `baseAlpha` (0.35–0.55) is
+  every dot's rest alpha; the frozen field snapshot only boosts on top.
+  So the fallback and reduced-motion display also show the full cloud
+  with excited regions brighter — poster and live piece agree at rest
+  and under excitation.
+- Everything else exactly as before: 110 BPM beat clock, downbeat
+  accent, mouse-as-emitter, `SPEED = 0.80` physics knob, first-paint
+  contract, poster-as-fallback-only.
+
 ### Pending review
 - Serving locally at http://127.0.0.1:4200 — awaiting founder approval on
   the moving piece before styling any other section (per DESIGN.md §7).

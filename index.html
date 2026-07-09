@@ -282,19 +282,24 @@
     }
 
     // Green particle scatter — the primary visual.
+    // Same existence/excitation model as the WebGL piece:
+    //   baseAlpha (0.35–0.55) is the resting alpha — every particle is drawn.
+    //   The field-snapshot value only BOOSTS alpha and radius on top.
     const scatter = [];
     const N = 1200;
     for (let i = 0; i < N; i++) {
       let x, y;
       do { x = rand(-3.05, 3.05); y = rand(-3.05, 3.05); }
       while (x*x + y*y > 8.7);
-      const f = scalarField(x, y);
-      const mag = Math.min(Math.abs(f), 1.5);
-      const gate = Math.max(0, (mag - 0.03) / 0.5);
-      const alpha = 0.14 + 0.80 * Math.min(1, gate);
-      const r = rand(0.010, 0.021);
-      const isInk = rng() < 0.08;
-      const color = isInk ? INK : GREEN;
+      const baseAlpha = rand(0.35, 0.55);
+      const baseR     = rand(0.011, 0.020);
+      const isInk     = rng() < 0.08;
+      const f       = scalarField(x, y);
+      const mag     = Math.min(Math.abs(f), 1.5);
+      const excited = Math.max(0, Math.min(1, (mag - 0.05) / 0.55));
+      const alpha   = Math.min(1.0, baseAlpha * (1.0 + excited * 1.4));
+      const r       = baseR * (1.0 + excited * 0.55);
+      const color   = isInk ? INK : GREEN;
       scatter.push(
         `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r.toFixed(3)}" fill="${color}" fill-opacity="${alpha.toFixed(2)}"/>`
       );
@@ -439,7 +444,9 @@
         pos[i*3+1] = Math.sin(th) * r;
         pos[i*3+2] = (rng() - 0.5) * 0.9;
         sizeA[i]  = rand(0.55, 1.1);
-        alphaA[i] = rand(0.45, 0.95);
+        // aAlpha IS the resting alpha. Range 0.35–0.55 → the cloud is fully
+        // present on a still field; excitation only boosts upward from here.
+        alphaA[i] = rand(0.35, 0.55);
         const isInk = rng() < 0.08;
         const c = isInk ? inkC : gr;
         col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
@@ -573,17 +580,25 @@
           vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
           gl_Position = projectionMatrix * mvPosition;
 
-          // Brightness/size from |scalar field| — wavefronts as visible bands
-          // sweeping through the cloud. uKickBoost adds a transient "hit"
-          // globally on each beat (bigger on downbeats).
-          float mag  = min(abs(scalarField), 1.6);
-          float gate = smoothstep(0.03, 0.55, mag);
-          float szm  = (0.55 + 0.90 * gate) * (1.0 + uKickBoost * 0.40);
+          // EXISTENCE vs EXCITATION.
+          //   Baseline = 1.0 for both size and alpha → every particle is ALWAYS
+          //   rendered at aSize/aAlpha, arranged in the seeded composition.
+          //   Excitation modulates ON TOP:
+          //     • size boost up to +55 % at wavefront peaks
+          //     • alpha boost up to +140 % at wavefront peaks (clamped to 1.0
+          //       in the fragment output, so peaks max at full opacity)
+          //   Kick envelope adds a transient global "hit" on every beat
+          //   (larger on downbeats). No |field|-gating of visibility — the
+          //   cloud is a fully-present piece; beats sweep energy through it.
+          float mag     = min(abs(scalarField), 1.6);
+          float excited = smoothstep(0.05, 0.60, mag);
+          float alphaMul = (1.0 + excited * 1.4) * (1.0 + uKickBoost * 0.5);
+          float sizeMul  = (1.0 + excited * 0.55) * (1.0 + uKickBoost * 0.35);
 
-          gl_PointSize = uSizeBase * aSize * szm * uPixelRatio * (22.0 / max(-mvPosition.z, 0.1));
+          gl_PointSize = uSizeBase * aSize * sizeMul * uPixelRatio * (22.0 / max(-mvPosition.z, 0.1));
 
           vColor = aColor;
-          vAlpha = aAlpha * (0.14 + 0.90 * gate) * (1.0 + uKickBoost * 0.50);
+          vAlpha = aAlpha * alphaMul;
         }
       `;
 
