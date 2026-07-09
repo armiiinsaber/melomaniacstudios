@@ -42,11 +42,26 @@
       overflow: hidden;
       background: var(--paper);
     }
-    #hero-canvas {
+    .hero-stage {
+      position: absolute; inset: 0;
+      z-index: 0;
+    }
+    .hero-svg, #hero-canvas {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
       display: block;
     }
+    .hero-svg {
+      opacity: 1;
+      transition: opacity .9s ease .15s;
+    }
+    #hero-canvas {
+      opacity: 0;
+      transition: opacity .9s ease;
+    }
+    body.webgl-ready .hero-svg { opacity: 0; }
+    body.webgl-ready #hero-canvas { opacity: 1; }
+
     .hero-content {
       position: relative;
       z-index: 2;
@@ -143,19 +158,19 @@
     @media (prefers-reduced-motion: reduce) {
       .hero-scroll .line { animation: none; opacity: .6; }
       html { scroll-behavior: auto; }
-    }
-
-    .no-webgl {
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--ink-soft); font-size: .7rem; letter-spacing: .3em; text-transform: uppercase;
+      /* Reduced motion: keep the static SVG poster, never light up the canvas. */
+      #hero-canvas { display: none; }
+      .hero-svg { transition: none; }
     }
   </style>
 </head>
 <body>
   <main>
     <section class="hero">
-      <canvas id="hero-canvas" aria-hidden="true"></canvas>
+      <div class="hero-stage">
+        <svg class="hero-svg" id="hero-svg" viewBox="-3.4 -3.4 6.8 6.8" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        <canvas id="hero-canvas" aria-hidden="true"></canvas>
+      </div>
       <div class="hero-content">
         <div class="hero-eyebrow"><span>Melomaniac Studios · Toronto</span></div>
         <div class="hero-main">
@@ -173,273 +188,345 @@
     </section>
   </main>
 
-  <script src="https://unpkg.com/three@0.161.0/build/three.min.js"></script>
+  <!--
+    Static SVG poster.
+    Runs synchronously, so the composition is on paper before the WebGL module
+    has resolved. Also serves as: (a) the fallback if the three.js module fails
+    to load / WebGL is unavailable, (b) the poster frame for prefers-reduced-motion.
+  -->
   <script>
-  (() => {
-    const canvas = document.getElementById('hero-canvas');
-    if (!window.THREE) { canvas.replaceWith(Object.assign(document.createElement('div'), { className: 'no-webgl', textContent: 'three.js failed to load' })); return; }
+  (function buildStaticPoster(){
+    const svg = document.getElementById('hero-svg');
+    if (!svg) return;
 
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Star polygon path {n/step}: connect vertex 0 → step → 2*step → … all mod n.
+    // For gcd(n, step)=1, this is one continuous closed line hitting every vertex.
+    // For other pairs it produces one or more overlapping loops; still a valid star.
+    function starPath(n, r, step) {
+      let idx = 0, d = '';
+      for (let k = 0; k < n; k++) {
+        const a = (idx / n) * Math.PI * 2;
+        const x = (Math.cos(a) * r).toFixed(3);
+        const y = (Math.sin(a) * r).toFixed(3);
+        d += (k === 0 ? 'M' : 'L') + x + ',' + y + ' ';
+        idx = (idx + step) % n;
+      }
+      return d + 'Z';
+    }
 
-    const INK   = 0x141310;
-    const GREEN = 0xB8F06E;
-    const PAPER = 0xF5F3EC;
+    const INK        = 'rgba(20,19,16,.60)';
+    const INK_MED    = 'rgba(20,19,16,.42)';
+    const INK_FAINT  = 'rgba(20,19,16,.22)';
+    const GREEN      = '#B8F06E';
 
-    // Seeded RNG — mulberry32. Seeded from date+hour+minute+10s bucket so it evolves through the day
-    // and is never quite the same twice.
-    const now = new Date();
-    const seed = (
-      (now.getFullYear() * 366 + now.getMonth() * 31 + now.getDate()) * 1440
-      + now.getHours() * 60 + now.getMinutes()
-    ) ^ (Math.floor(now.getSeconds() / 10) * 2654435761);
-    let s = seed >>> 0;
-    const rng = () => {
-      s = (s + 0x6D2B79F5) >>> 0;
-      let t = s;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    // Composition (fixed, always looks composed):
+    // — outer frame hairline circle
+    // — outer 12-fold star polygon in ink
+    // — outer radial spokes, low opacity
+    // — middle 10-fold star polygon in ink
+    // — inner 12/5 rosette in ink
+    // — central 8/3 rosette in ink
+    // — ONE continuous green {12/5} star between mid and inner (the "living current")
+    // — small green ring hint at the same radius so the green feels grounded
+    // — central ink dot
+    const spokes = (n, r0, r1, opacity) => {
+      let d = '';
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        d += `M${(Math.cos(a)*r0).toFixed(3)},${(Math.sin(a)*r0).toFixed(3)} L${(Math.cos(a)*r1).toFixed(3)},${(Math.sin(a)*r1).toFixed(3)} `;
+      }
+      return `<path d="${d}" fill="none" stroke="${INK}" stroke-opacity="${opacity}" stroke-width=".009"/>`;
     };
-    const pick = (arr) => arr[Math.floor(rng() * arr.length)];
-    const rand = (a, b) => a + rng() * (b - a);
 
-    const FOLDS = [8, 10, 12, 16];
-    const primary = pick(FOLDS);
+    svg.innerHTML = [
+      `<circle cx="0" cy="0" r="2.85" fill="none" stroke="${INK_FAINT}" stroke-width=".008"/>`,
+      `<circle cx="0" cy="0" r="1.35" fill="none" stroke="${INK_FAINT}" stroke-width=".009"/>`,
+      spokes(24, 1.3, 2.6, .55),
+      `<path d="${starPath(12, 2.6, 5)}"  fill="none" stroke="${INK}"     stroke-width=".011" stroke-linejoin="round"/>`,
+      `<path d="${starPath(10, 1.72, 3)}" fill="none" stroke="${INK}"     stroke-width=".011" stroke-linejoin="round"/>`,
+      `<path d="${starPath(12, 1.35, 5)}" fill="none" stroke="${INK_MED}" stroke-width=".010" stroke-linejoin="round"/>`,
+      `<path d="${starPath(8,  0.6,  3)}" fill="none" stroke="${INK}"     stroke-width=".010" stroke-linejoin="round"/>`,
+      // ONE continuous green line — {12/5} closed star polygon; gcd(12,5)=1 → single stroke.
+      `<path d="${starPath(12, 2.15, 5)}" fill="none" stroke="${GREEN}"   stroke-width=".020" stroke-linejoin="round" stroke-linecap="round"/>`,
+      `<circle cx="0" cy="0" r="0.13" fill="${INK}"/>`,
+    ].join('');
+  })();
+  </script>
 
-    let renderer;
-    try {
-      renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    } catch (e) {
-      canvas.replaceWith(Object.assign(document.createElement('div'), { className: 'no-webgl', textContent: 'WebGL unavailable' }));
-      return;
-    }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setClearColor(PAPER, 1);
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-    camera.position.z = 8;
-
-    // Root group — holds everything, tilted and orbited as one sculpture.
-    const assembly = new THREE.Group();
-    scene.add(assembly);
-
-    // ---- Line-builders (rosette/girih geometry) ----
-    function bufferLines(positions, color, opacity) {
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
-      return new THREE.LineSegments(geom, mat);
-    }
-    function bufferLoop(positions, color, opacity) {
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
-      return new THREE.Line(geom, mat);
-    }
-    // Star polygon {n/step}: connect vertex i to vertex (i+step) mod n at radius r on plane z.
-    function starChords(n, radius, step, color, opacity, z=0) {
-      const verts = [];
-      for (let i = 0; i < n; i++) {
-        const t = (i / n) * Math.PI * 2;
-        verts.push([Math.cos(t) * radius, Math.sin(t) * radius, z]);
-      }
-      const positions = [];
-      for (let i = 0; i < n; i++) {
-        const j = (i + step) % n;
-        positions.push(...verts[i], ...verts[j]);
-      }
-      return bufferLines(positions, color, opacity);
-    }
-    function circle(radius, color, opacity, z=0, segments=192) {
-      const positions = [];
-      for (let i = 0; i <= segments; i++) {
-        const t = (i / segments) * Math.PI * 2;
-        positions.push(Math.cos(t) * radius, Math.sin(t) * radius, z);
-      }
-      return bufferLoop(positions, color, opacity);
-    }
-    function radials(n, r0, r1, color, opacity, z=0, phase=0) {
-      const positions = [];
-      for (let i = 0; i < n; i++) {
-        const t = (i / n) * Math.PI * 2 + phase;
-        positions.push(Math.cos(t) * r0, Math.sin(t) * r0, z, Math.cos(t) * r1, Math.sin(t) * r1, z);
-      }
-      return bufferLines(positions, color, opacity);
-    }
-    // Girih-style "strap" band: a ring of two nested star polygons at close radii, giving that
-    // interlocked, woven feel. Returned as a group so it can spin as one.
-    function girihBand(n, rInner, rOuter, stepA, stepB, color, opacity, z) {
-      const g = new THREE.Group();
-      g.add(starChords(n, rInner, stepA, color, opacity, z));
-      g.add(starChords(n, rOuter, stepB, color, opacity * 0.75, z));
-      return g;
-    }
-
-    // ---- Compose layers ----
-    // Each layer is a plane in ~2D at a distinct z, spun at its own rate.
-    // Together they read as a sculptural etching.
-    const spinners = [];
-
-    // outermost hairline circle — sets the "frame"
-    const c0 = circle(2.85, INK, 0.15, -0.55);
-    assembly.add(c0);
-
-    // outer star ring
-    const outerStep = Math.max(3, Math.floor(primary / 2) - (rng() < .5 ? 1 : 2));
-    const outer = starChords(primary, 2.6, outerStep, INK, 0.42, -0.45);
-    assembly.add(outer);
-    spinners.push({ obj: outer, spin: 0.0055 * (rng() < .5 ? 1 : -1) });
-
-    // outer radial spokes — restrained, low opacity
-    const spokes = radials(primary * 2, 1.3, 2.6, INK, 0.11, -0.25, rng() * Math.PI * 2);
-    assembly.add(spokes);
-    spinners.push({ obj: spokes, spin: 0.003 });
-
-    // middle girih band — this is the visual heart
-    const midFold = pick(FOLDS);
-    const stepA = Math.max(2, Math.floor(midFold / 2) - 1);
-    const stepB = Math.max(3, Math.floor(midFold / 2));
-    const band = girihBand(midFold, 1.72, 2.05, stepA, stepB, INK, 0.55, 0.0);
-    assembly.add(band);
-    spinners.push({ obj: band, spin: -0.011 });
-
-    // the one confident green trace — a star polygon woven between mid and inner
-    const greenFold = pick([primary, midFold, 12]);
-    const greenStep = Math.max(2, Math.floor(greenFold / 2) + (rng() < .5 ? 0 : 1));
-    const greenTrace = starChords(greenFold, 2.15, greenStep, GREEN, 0.9, 0.15);
-    assembly.add(greenTrace);
-    spinners.push({ obj: greenTrace, spin: 0.008 });
-
-    // green concentric hairline — extremely rationed
-    const greenRing = circle(2.15, GREEN, 0.42, 0.15);
-    assembly.add(greenRing);
-
-    // inner rosette (always 12-fold — classic Persian rosette count, without spelling it)
-    const innerStep = pick([3, 5, 7]);
-    const inner = starChords(12, 1.35, innerStep, INK, 0.68, 0.42);
-    assembly.add(inner);
-    spinners.push({ obj: inner, spin: 0.019 });
-
-    const innerRing = circle(1.35, INK, 0.32, 0.42);
-    assembly.add(innerRing);
-
-    // central 8-fold rosette
-    const central = starChords(8, 0.6, 3, INK, 0.82, 0.7);
-    assembly.add(central);
-    spinners.push({ obj: central, spin: -0.026 });
-
-    // dead-center dot (ring)
-    const dot = circle(0.13, INK, 0.7, 0.85, 64);
-    assembly.add(dot);
-
-    // subtle green radial accents — half-count, short reach, one per "petal"
-    const gAccent = radials(Math.max(4, Math.floor(primary / 2)), 0.62, 1.28, GREEN, 0.42, 0.55, rng() * Math.PI * 2);
-    assembly.add(gAccent);
-    spinners.push({ obj: gAccent, spin: -0.007 });
-
-    // ---- Particle field (fine thread dust) ----
-    const PC = 280;
-    const pPos = new Float32Array(PC * 3);
-    const pCol = new Float32Array(PC * 3);
-    const pMeta = new Float32Array(PC * 4); // radius, baseAngle, freq, zBase
-    const inkC = new THREE.Color(INK), greenC = new THREE.Color(GREEN);
-    for (let i = 0; i < PC; i++) {
-      const r = rand(0.35, 3.15);
-      const a = rng() * Math.PI * 2;
-      const z0 = (rng() - 0.5) * 1.1;
-      pPos[i*3]     = Math.cos(a) * r;
-      pPos[i*3+1]   = Math.sin(a) * r;
-      pPos[i*3+2]   = z0;
-      pMeta[i*4]    = r;
-      pMeta[i*4+1]  = a;
-      pMeta[i*4+2]  = rand(0.35, 1.6);
-      pMeta[i*4+3]  = z0;
-      const isGreen = rng() < 0.12; // ~12% green — the design's 10–15% target
-      const c = isGreen ? greenC : inkC;
-      pCol[i*3] = c.r; pCol[i*3+1] = c.g; pCol[i*3+2] = c.b;
-    }
-    const pGeom = new THREE.BufferGeometry();
-    pGeom.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3));
-    pGeom.setAttribute('color', new THREE.Float32BufferAttribute(pCol, 3));
-    const particles = new THREE.Points(pGeom, new THREE.PointsMaterial({
-      size: 0.019, sizeAttenuation: true,
-      vertexColors: true, transparent: true, opacity: 0.55
-    }));
-    assembly.add(particles);
-
-    // ---- Base orientation (sculptural tilt + random-per-load starting angle) ----
-    const baseTiltX = 0.32;
-    assembly.rotation.x = baseTiltX;
-    assembly.rotation.z = rng() * Math.PI * 2;
-
-    // ---- Sizing / composition ----
-    function resize() {
-      const w = window.innerWidth, h = window.innerHeight;
-      renderer.setSize(w, h, false);
-      const aspect = w / h;
-      camera.aspect = aspect;
-      // Pull the camera back for portrait / narrow so the piece never crops.
-      camera.position.z = aspect >= 1.15 ? 8 : (aspect >= 0.85 ? 9.2 : (8 / Math.max(aspect, 0.42)));
-      camera.updateProjectionMatrix();
-
-      // Off-center on wide screens so the wordmark has left-column space.
-      const isWide = aspect >= 1.4;
-      const isMed  = aspect >= 0.95;
-      assembly.position.x = isWide ? 1.6 : (isMed ? 0.7 : 0);
-      assembly.scale.setScalar(isWide ? 1.0 : (isMed ? 0.9 : 0.82));
-    }
-    resize();
-    window.addEventListener('resize', resize);
-
-    // ---- Cursor perturbation ----
-    const cursor = { x: 0, y: 0, tx: 0, ty: 0 };
-    window.addEventListener('pointermove', (e) => {
-      cursor.tx = (e.clientX / window.innerWidth  - 0.5) * 2;
-      cursor.ty = (e.clientY / window.innerHeight - 0.5) * 2;
-    }, { passive: true });
-
-    // ---- Animation ----
-    const clock = new THREE.Clock();
-    function tick() {
-      const t = clock.getElapsedTime();
-
-      for (const l of spinners) l.obj.rotation.z += l.spin;
-
-      // Slow drift on the whole assembly (never the same twice, ~20–30s cycle).
-      const driftY = Math.sin(t * 0.075) * 0.26;
-      const driftX = Math.sin(t * 0.11)  * 0.06;
-      cursor.x += (cursor.tx - cursor.x) * 0.035;
-      cursor.y += (cursor.ty - cursor.y) * 0.035;
-      assembly.rotation.y = driftY + cursor.x * 0.22;
-      assembly.rotation.x = baseTiltX + driftX - cursor.y * 0.12;
-
-      // Particles orbit + gentle z shimmer
-      const pa = particles.geometry.attributes.position;
-      for (let i = 0; i < PC; i++) {
-        const r = pMeta[i*4];
-        const baseA = pMeta[i*4+1];
-        const freq = pMeta[i*4+2];
-        const z0 = pMeta[i*4+3];
-        const drift = Math.sin(t * 0.18 * freq + i * 0.13) * 0.05;
-        const a = baseA + t * (i % 3 === 0 ? -0.014 : 0.019);
-        pa.array[i*3]   = Math.cos(a) * (r + drift);
-        pa.array[i*3+1] = Math.sin(a) * (r + drift);
-        pa.array[i*3+2] = z0 + Math.sin(t * 0.42 + i * 0.71) * 0.07;
-      }
-      pa.needsUpdate = true;
-
-      renderer.render(scene, camera);
-      if (!reducedMotion) requestAnimationFrame(tick);
-    }
-
-    if (reducedMotion) {
-      // Reduced motion: render a single static poster frame, no rAF.
-      renderer.render(scene, camera);
+  <!--
+    WebGL piece. Vendored ES module — no third-party CDN at runtime.
+    If the import fails or WebGL init throws, the SVG poster above stays visible.
+  -->
+  <script type="module">
+    // Reduced-motion users get the poster only. Never light up rAF for them.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // nothing to do — SVG is already the display
     } else {
+      try {
+        const THREE = await import('./vendor/three.module.min.js');
+        initHero(THREE);
+      } catch (err) {
+        // ES module failed to load (offline, MIME mismatch, whatever). SVG stays; no visible failure.
+        console.warn('[hero] WebGL module unavailable — poster fallback in use.', err);
+      }
+    }
+
+    function initHero(THREE) {
+      const canvas = document.getElementById('hero-canvas');
+
+      // Try to create a WebGL context. If this throws, the SVG poster remains
+      // visible and we bail cleanly.
+      let renderer;
+      try {
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+      } catch (e) {
+        console.warn('[hero] WebGL unavailable — poster fallback in use.', e);
+        return;
+      }
+
+      const INK   = 0x141310;
+      const GREEN = 0xB8F06E;
+      const PAPER = 0xF5F3EC;
+
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setClearColor(PAPER, 1);
+
+      // Seeded RNG (mulberry32). Seed shifts with date + hour + minute + a 10-second
+      // bucket so the piece is "never the same twice" across a day.
+      const now = new Date();
+      const seed = (
+        (now.getFullYear() * 366 + now.getMonth() * 31 + now.getDate()) * 1440
+        + now.getHours() * 60 + now.getMinutes()
+      ) ^ (Math.floor(now.getSeconds() / 10) * 2654435761);
+      let s = seed >>> 0;
+      const rng = () => {
+        s = (s + 0x6D2B79F5) >>> 0;
+        let t = s;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+      const pick = (arr) => arr[Math.floor(rng() * arr.length)];
+      const rand = (a, b) => a + rng() * (b - a);
+
+      const FOLDS = [8, 10, 12, 16];
+      const primary = pick(FOLDS);
+
+      const scene  = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+      camera.position.z = 8;
+
+      // Whole sculpture is one group so it tilts and orbits as one.
+      const assembly = new THREE.Group();
+      scene.add(assembly);
+
+      // ---------- Line-builders ----------
+      function segs(positions, color, opacity) {
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        return new THREE.LineSegments(geom, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
+      }
+      function loop(positions, color, opacity) {
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        return new THREE.Line(geom, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
+      }
+
+      // Star polygon chords {n/step} as LineSegments — each chord is one segment.
+      function starChords(n, radius, step, color, opacity, z=0) {
+        const verts = [];
+        for (let i = 0; i < n; i++) {
+          const t = (i / n) * Math.PI * 2;
+          verts.push([Math.cos(t) * radius, Math.sin(t) * radius, z]);
+        }
+        const pos = [];
+        for (let i = 0; i < n; i++) {
+          const j = (i + step) % n;
+          pos.push(...verts[i], ...verts[j]);
+        }
+        return segs(pos, color, opacity);
+      }
+      // Star polygon drawn as ONE continuous closed line (LineLoop). Requires gcd(n,step)=1.
+      function starOneLine(n, radius, step, color, opacity, z=0) {
+        const pos = [];
+        for (let k = 0; k < n; k++) {
+          const idx = (k * step) % n;
+          const t = (idx / n) * Math.PI * 2;
+          pos.push(Math.cos(t) * radius, Math.sin(t) * radius, z);
+        }
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        return new THREE.LineLoop(geom, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
+      }
+      function circleLine(radius, color, opacity, z=0, segments=192) {
+        const pos = [];
+        for (let i = 0; i <= segments; i++) {
+          const t = (i / segments) * Math.PI * 2;
+          pos.push(Math.cos(t) * radius, Math.sin(t) * radius, z);
+        }
+        return loop(pos, color, opacity);
+      }
+      function radials(n, r0, r1, color, opacity, z=0, phase=0) {
+        const pos = [];
+        for (let i = 0; i < n; i++) {
+          const t = (i / n) * Math.PI * 2 + phase;
+          pos.push(Math.cos(t)*r0, Math.sin(t)*r0, z, Math.cos(t)*r1, Math.sin(t)*r1, z);
+        }
+        return segs(pos, color, opacity);
+      }
+      function girihBand(n, rInner, rOuter, stepA, stepB, color, opacity, z) {
+        const g = new THREE.Group();
+        g.add(starChords(n, rInner, stepA, color, opacity, z));
+        g.add(starChords(n, rOuter, stepB, color, opacity * 0.72, z));
+        return g;
+      }
+
+      // ---------- Ink layers (each spins on its own z-axis) ----------
+      const spinners = [];
+
+      const c0 = circleLine(2.85, INK, 0.14, -0.55);
+      assembly.add(c0);
+
+      const outerStep = Math.max(3, Math.floor(primary / 2) - (rng() < .5 ? 1 : 2));
+      const outer = starChords(primary, 2.6, outerStep, INK, 0.44, -0.45);
+      assembly.add(outer);
+      spinners.push({ obj: outer, spin: 0.0055 * (rng() < .5 ? 1 : -1) });
+
+      const spokes = radials(primary * 2, 1.3, 2.6, INK, 0.11, -0.25, rng() * Math.PI * 2);
+      assembly.add(spokes);
+      spinners.push({ obj: spokes, spin: 0.003 });
+
+      const midFold = pick(FOLDS);
+      const stepA = Math.max(2, Math.floor(midFold / 2) - 1);
+      const stepB = Math.max(3, Math.floor(midFold / 2));
+      const band = girihBand(midFold, 1.72, 2.05, stepA, stepB, INK, 0.55, 0.0);
+      assembly.add(band);
+      spinners.push({ obj: band, spin: -0.011 });
+
+      const innerStep = pick([3, 5, 7]);
+      const inner = starChords(12, 1.35, innerStep, INK, 0.66, 0.42);
+      assembly.add(inner);
+      spinners.push({ obj: inner, spin: 0.019 });
+
+      const innerRing = circleLine(1.35, INK, 0.30, 0.42);
+      assembly.add(innerRing);
+
+      const central = starChords(8, 0.6, 3, INK, 0.82, 0.7);
+      assembly.add(central);
+      spinners.push({ obj: central, spin: -0.026 });
+
+      const dot = circleLine(0.13, INK, 0.7, 0.85, 64);
+      assembly.add(dot);
+
+      // ---------- The green (rationed): ONE continuous flowing line ----------
+      // Pick a coprime (n, step) pair so the star polygon draws as a single closed
+      // stroke that hits every vertex — a single "living current" through the ink.
+      const COPRIME = [[8,3],[10,3],[10,7],[12,5],[12,7],[16,3],[16,5],[16,7]];
+      const [gN, gStep] = pick(COPRIME);
+      const greenTrace = starOneLine(gN, 2.15, gStep, GREEN, 0.95, 0.15);
+      assembly.add(greenTrace);
+      spinners.push({ obj: greenTrace, spin: 0.008 });
+
+      // A very quiet green ring at the same radius grounds the trace without shouting.
+      const greenRing = circleLine(2.15, GREEN, 0.25, 0.15);
+      assembly.add(greenRing);
+
+      // ---------- Particle drift ----------
+      const PC = 280;
+      const pPos = new Float32Array(PC * 3);
+      const pCol = new Float32Array(PC * 3);
+      const pMeta = new Float32Array(PC * 4); // r, baseAngle, freq, zBase
+      const inkC = new THREE.Color(INK), greenC = new THREE.Color(GREEN);
+      for (let i = 0; i < PC; i++) {
+        const r = rand(0.35, 3.15);
+        const a = rng() * Math.PI * 2;
+        const z0 = (rng() - 0.5) * 1.1;
+        pPos[i*3]     = Math.cos(a) * r;
+        pPos[i*3+1]   = Math.sin(a) * r;
+        pPos[i*3+2]   = z0;
+        pMeta[i*4]    = r;
+        pMeta[i*4+1]  = a;
+        pMeta[i*4+2]  = rand(0.35, 1.6);
+        pMeta[i*4+3]  = z0;
+        // ~8% green particles — the strong green LineLoop already carries the ration;
+        // these are just a hint of "current" in the dust.
+        const isGreen = rng() < 0.08;
+        const c = isGreen ? greenC : inkC;
+        pCol[i*3] = c.r; pCol[i*3+1] = c.g; pCol[i*3+2] = c.b;
+      }
+      const pGeom = new THREE.BufferGeometry();
+      pGeom.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3));
+      pGeom.setAttribute('color', new THREE.Float32BufferAttribute(pCol, 3));
+      const particles = new THREE.Points(pGeom, new THREE.PointsMaterial({
+        size: 0.019, sizeAttenuation: true,
+        vertexColors: true, transparent: true, opacity: 0.55
+      }));
+      assembly.add(particles);
+
+      // Sculptural tilt + random-per-load starting angle.
+      const baseTiltX = 0.32;
+      assembly.rotation.x = baseTiltX;
+      assembly.rotation.z = rng() * Math.PI * 2;
+
+      function resize() {
+        const w = window.innerWidth, h = window.innerHeight;
+        renderer.setSize(w, h, false);
+        const aspect = w / h;
+        camera.aspect = aspect;
+        // Pull camera back for narrow / portrait so the piece never crops.
+        camera.position.z = aspect >= 1.15 ? 8 : (aspect >= 0.85 ? 9.2 : (8 / Math.max(aspect, 0.42)));
+        camera.updateProjectionMatrix();
+        const isWide = aspect >= 1.4;
+        const isMed  = aspect >= 0.95;
+        assembly.position.x = isWide ? 1.6 : (isMed ? 0.7 : 0);
+        assembly.scale.setScalar(isWide ? 1.0 : (isMed ? 0.9 : 0.82));
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      const cursor = { x: 0, y: 0, tx: 0, ty: 0 };
+      window.addEventListener('pointermove', (e) => {
+        cursor.tx = (e.clientX / window.innerWidth  - 0.5) * 2;
+        cursor.ty = (e.clientY / window.innerHeight - 0.5) * 2;
+      }, { passive: true });
+
+      const clock = new THREE.Clock();
+      let ready = false;
+      function tick() {
+        const t = clock.getElapsedTime();
+        for (const l of spinners) l.obj.rotation.z += l.spin;
+        const driftY = Math.sin(t * 0.075) * 0.26;
+        const driftX = Math.sin(t * 0.11)  * 0.06;
+        cursor.x += (cursor.tx - cursor.x) * 0.035;
+        cursor.y += (cursor.ty - cursor.y) * 0.035;
+        assembly.rotation.y = driftY + cursor.x * 0.22;
+        assembly.rotation.x = baseTiltX + driftX - cursor.y * 0.12;
+
+        const pa = particles.geometry.attributes.position;
+        for (let i = 0; i < PC; i++) {
+          const r = pMeta[i*4];
+          const baseA = pMeta[i*4+1];
+          const freq = pMeta[i*4+2];
+          const z0 = pMeta[i*4+3];
+          const drift = Math.sin(t * 0.18 * freq + i * 0.13) * 0.05;
+          const a = baseA + t * (i % 3 === 0 ? -0.014 : 0.019);
+          pa.array[i*3]   = Math.cos(a) * (r + drift);
+          pa.array[i*3+1] = Math.sin(a) * (r + drift);
+          pa.array[i*3+2] = z0 + Math.sin(t * 0.42 + i * 0.71) * 0.07;
+        }
+        pa.needsUpdate = true;
+
+        renderer.render(scene, camera);
+
+        // First successful frame → tell CSS to fade the canvas in and the SVG out.
+        if (!ready) {
+          ready = true;
+          requestAnimationFrame(() => document.body.classList.add('webgl-ready'));
+        }
+        requestAnimationFrame(tick);
+      }
       tick();
     }
-  })();
   </script>
 </body>
 </html>
