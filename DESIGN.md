@@ -43,6 +43,30 @@ Typography:
 - Numerals: pillar numbering rendered oversized in the serif ("01", "02"…) as graphic objects, pop-art scale.
 - `text-wrap: balance` on all headings and paragraphs. No orphaned words on a line.
 
+### The house cut (proprietary type instance)
+
+Fraunces is loaded as a full variable font (axes: `ital, opsz, wght, SOFT, WONK`). One locked instance — **the house cut** — applies everywhere the display serif appears (wordmark, pillar numerals & names, Labs typography, section headings). This is what makes the site's voice distinctive from a raw Fraunces setting.
+
+Axis values (do not vary — ship via `var(--house-serif-mods)` in CSS):
+- `SOFT: 40` — moderate warmth in terminals; still crisp
+- `WONK: 0` — restraint over Fraunces's default swash-y idiosyncrasy (cleaner)
+- `opsz`: sized per usage (24 for tagline / small display, 144 for hero display)
+- `wght`: 300 by default (light editorial)
+
+CSS pattern:
+```css
+:root {
+  --house-serif: 'Fraunces', 'Instrument Serif', Georgia, serif;
+  --house-serif-mods: 'SOFT' 40, 'WONK' 0;
+}
+.pillar-name {
+  font-family: var(--house-serif);
+  font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
+}
+```
+
+The wordmark ships as SVG with `<text>` in the house cut plus a hand-drawn bespoke overlay (currently a single signature hairline; a fully flattened-to-paths version with hand-modified letterforms is a follow-up pass that needs a font-to-paths tool — noted so this doesn't rot into "we forgot to do it").
+
 Layout & texture:
 - Generous margins; a visible but quiet grid. Hairline rules (1px, `--hairline`) as the only borders — no rounded cards, no glows, no drop shadows except on the 3D render itself.
 - Whitespace is the main material. When in doubt, remove.

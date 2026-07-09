@@ -11,7 +11,12 @@
        With cache disabled + throttled network this is the difference between
        "reveal within ~200 ms" and "reveal after ~1 s". -->
   <link rel="modulepreload" href="./vendor/three.module.min.js">
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!--
+    Fraunces loaded as a full variable font: ital, opsz, wght, SOFT, WONK.
+    The house cut (SOFT 40, WONK 0) is applied everywhere Fraunces appears
+    via var(--house-serif-mods). See DESIGN.md § "The house cut".
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,100..900,0..100,0..1;1,9..144,100..900,0..100,0..1&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
       --green: #B8F06E;
@@ -22,6 +27,9 @@
       --ink-soft: rgba(20,19,16,.55);
       --ink-mute: rgba(20,19,16,.34);
       --hairline: rgba(20,19,16,.14);
+      /* The house cut — proprietary Fraunces instance. See DESIGN.md. */
+      --house-serif: 'Fraunces', 'Instrument Serif', Georgia, serif;
+      --house-serif-mods: 'SOFT' 40, 'WONK' 0;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; background: var(--paper); }
@@ -128,26 +136,26 @@
       gap: 1.4rem;
     }
     .hero-wordmark {
-      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
-      font-variation-settings: 'opsz' 144;
-      font-weight: 300;
-      font-size: clamp(4.2rem, 13.4vw, 12.8rem);
-      line-height: .86;
-      letter-spacing: -.028em;
       color: var(--ink);
-      display: flex; flex-direction: column;
-    }
-    .hero-wordmark .w-a { display: block; }
-    .hero-wordmark .w-b {
       display: block;
-      font-style: italic;
-      font-weight: 300;
-      padding-left: .06em;
-      margin-top: -.015em;
+      width: clamp(280px, 62vw, 780px);
+      margin: 0;
+      line-height: 0;
+    }
+    .hero-wordmark .wordmark-svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      color: currentColor;
+    }
+    .wordmark-fallback {
+      position: absolute; width: 1px; height: 1px;
+      padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
     }
     .hero-tagline {
-      font-family: 'Fraunces', serif;
-      font-variation-settings: 'opsz' 24;
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 24, 'wght' 300, var(--house-serif-mods);
       font-style: italic;
       font-weight: 300;
       font-size: clamp(1.05rem, 1.55vw, 1.5rem);
@@ -225,8 +233,8 @@
       color: var(--ink);
     }
     .pillar-num {
-      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
-      font-variation-settings: 'opsz' 144;
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
       font-weight: 300;
       font-size: clamp(4.5rem, 9vw, 10rem);
       line-height: .82;
@@ -241,8 +249,8 @@
       min-width: 0;
     }
     .pillar-name {
-      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
-      font-variation-settings: 'opsz' 144;
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
       font-weight: 300;
       font-size: clamp(2.4rem, 5.5vw, 6rem);
       line-height: .92;
@@ -259,7 +267,8 @@
       text-wrap: balance;
     }
     .pillar-arrow {
-      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
       font-size: clamp(1.4rem, 2vw, 1.9rem);
       color: var(--ink-mute);
       line-height: 1;
@@ -305,97 +314,140 @@
     .labs .section-eyebrow::before { background: var(--ink); }
 
     .labs-lead {
-      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
-      font-variation-settings: 'opsz' 144;
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
       font-weight: 300;
       font-size: clamp(2.4rem, 6vw, 6rem);
       line-height: .9;
       letter-spacing: -.03em;
       color: var(--ink);
-      max-width: 20ch;
+      max-width: 22ch;
       text-wrap: balance;
-      margin-bottom: clamp(3rem, 7vw, 7rem);
+      margin-bottom: clamp(3rem, 6vw, 6rem);
     }
 
-    .labs-experiments {
-      list-style: none;
+    /* Labs index (left) + preview (right). NO NUMBERS. */
+    .labs-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: clamp(1.5rem, 3vw, 3rem);
+      grid-template-columns: minmax(280px, 44%) 1fr;
+      gap: clamp(2rem, 5vw, 5rem);
+      align-items: stretch;
     }
-    .lab {
+    .labs-index {
+      list-style: none;
+      display: flex; flex-direction: column;
+      margin: 0; padding: 0;
+    }
+    .labs-index-row {
       border-top: 1px solid rgba(20,19,16,.30);
     }
-    .lab-link {
-      display: flex;
-      flex-direction: column;
-      gap: clamp(1.5rem, 2.5vw, 2rem);
-      color: var(--ink);
-      padding: clamp(1.5rem, 2vw, 2rem) 0 clamp(1rem, 1.5vw, 1.5rem);
-      min-height: 22rem;
-      height: 100%;
+    .labs-index-row:last-child {
+      border-bottom: 1px solid rgba(20,19,16,.30);
     }
-    .lab-num {
-      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
-      font-variation-settings: 'opsz' 144;
-      font-weight: 300;
-      font-size: clamp(3.5rem, 5vw, 5.5rem);
-      line-height: .82;
-      letter-spacing: -.02em;
-      color: var(--ink);
-      font-feature-settings: 'lnum';
-    }
-    .lab-body {
+    .labs-name-link {
       display: flex; flex-direction: column;
-      gap: .7rem;
-      margin-top: auto;
+      gap: .55rem;
+      padding: clamp(1.6rem, 3vw, 2.5rem) 0 clamp(1.6rem, 3vw, 2.5rem) 0;
+      color: var(--ink);
+      position: relative;
+      transition: padding-left .55s ease;
     }
-    .lab-name {
-      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
-      font-variation-settings: 'opsz' 144;
+    .labs-name-link::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--ink);
+      transform: scaleY(0);
+      transform-origin: center;
+      transition: transform .55s ease;
+    }
+    .labs-index-row.is-active .labs-name-link,
+    .labs-name-link:hover,
+    .labs-name-link:focus-visible {
+      padding-left: 1.1rem;
+    }
+    .labs-index-row.is-active .labs-name-link::before,
+    .labs-name-link:hover::before,
+    .labs-name-link:focus-visible::before {
+      transform: scaleY(1);
+    }
+    .labs-name {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
       font-weight: 300;
-      font-size: clamp(2rem, 3.2vw, 3.4rem);
-      line-height: .92;
+      font-size: clamp(2.4rem, 5vw, 5rem);
+      line-height: .95;
       letter-spacing: -.02em;
       color: var(--ink);
     }
-    .lab-line {
+    .labs-line {
       font-family: 'Inter', sans-serif;
-      font-size: clamp(.9rem, 1.1vw, 1.05rem);
+      font-size: clamp(.85rem, 1vw, 1rem);
       line-height: 1.5;
       color: rgba(20,19,16,.72);
       text-wrap: balance;
-      max-width: 32ch;
+      max-width: 38ch;
     }
-    .lab-cta {
+    .labs-cta-mini {
+      font-size: .60rem; letter-spacing: .3em; text-transform: uppercase;
+      font-weight: 500; color: var(--ink);
       display: inline-flex; align-items: center; gap: .35rem;
-      font-family: 'Inter', sans-serif;
-      font-size: .68rem; letter-spacing: .3em; text-transform: uppercase;
-      font-weight: 500;
-      color: var(--ink);
-      margin-top: 1.2rem;
-      padding-top: 1.1rem;
-      border-top: 1px solid rgba(20,19,16,.30);
+      margin-top: .35rem;
+      opacity: .55;
+      transition: opacity .55s ease;
     }
-    .lab-arrow {
-      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
-      text-transform: none;
-      letter-spacing: 0;
-      font-size: 1.15em;
-      margin-left: .35rem;
-      transition: transform .5s ease;
-      display: inline-block;
+    .labs-index-row.is-active .labs-cta-mini,
+    .labs-name-link:hover .labs-cta-mini,
+    .labs-name-link:focus-visible .labs-cta-mini { opacity: 1; }
+    .labs-cta-arrow {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 24, 'wght' 300, var(--house-serif-mods);
+      text-transform: none; letter-spacing: 0;
+      font-size: 1.2em;
+      margin-left: .25rem;
     }
-    .lab-link:hover .lab-arrow,
-    .lab-link:focus-visible .lab-arrow { transform: translateX(6px); }
-    .lab-link:focus-visible {
+    .labs-name-link:focus-visible {
       outline: 1px solid var(--ink);
       outline-offset: 6px;
     }
 
+    /* Preview panel: canvas showing the current preset's live loop. */
+    .labs-preview {
+      position: relative;
+      border-top: 1px solid rgba(20,19,16,.30);
+      border-bottom: 1px solid rgba(20,19,16,.30);
+      align-self: stretch;
+      overflow: hidden;
+      background: transparent;
+      min-height: 26rem;
+    }
+    #labs-canvas {
+      display: block;
+      width: 100%; height: 100%;
+      transition: opacity .28s ease;
+    }
+    .labs-preview.is-switching #labs-canvas { opacity: .18; }
+    .labs-preview-label {
+      position: absolute;
+      top: clamp(1rem, 2vw, 1.5rem);
+      left: clamp(1rem, 2vw, 1.5rem);
+      font-size: .58rem; letter-spacing: .34em; text-transform: uppercase;
+      color: var(--ink);
+      font-weight: 500;
+      opacity: .55;
+      pointer-events: none;
+    }
+
     @media (max-width: 900px) {
-      .labs-experiments { grid-template-columns: 1fr; }
-      .lab-link { min-height: 14rem; }
+      .labs-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+      .labs-preview {
+        order: 2;
+        min-height: 20rem;
+      }
     }
 
     /* Reduced motion → static SVG poster is the display, canvas never lights up. */
@@ -423,8 +475,27 @@
         <div class="hero-eyebrow"><span>Melomaniac Studios</span></div>
         <div class="hero-main">
           <h1 class="hero-wordmark">
-            <span class="w-a">Melomaniac</span>
-            <span class="w-b">Studios</span>
+            <!-- Accessible fallback text. -->
+            <span class="wordmark-fallback">Melomaniac Studios</span>
+            <!--
+              Bespoke wordmark SVG.
+              — Two lines set in the house cut Fraunces (opsz 144, wght 300, SOFT 40, WONK 0).
+              — One hand-drawn signature: a hairline "brand rule" below the wordmark
+                gesturing right, then hooking down toward Studios. This is the honest
+                first-pass bespoke element. A fully flattened-to-paths version with
+                hand-modified letterforms is a follow-up pass (needs a font tool).
+            -->
+            <svg class="wordmark-svg" viewBox="0 0 720 268" role="img" aria-hidden="true" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+              <g fill="currentColor" style="font-family: 'Fraunces', 'Instrument Serif', Georgia, serif; font-variation-settings: 'opsz' 144, 'wght' 300, 'SOFT' 40, 'WONK' 0;">
+                <text x="0"  y="146" font-size="176" letter-spacing="-4">Melomaniac</text>
+                <text x="10" y="246" font-size="120" font-style="italic" letter-spacing="-3">Studios</text>
+              </g>
+              <!-- Bespoke signature hairline. Sits between the two words, gestures right and
+                   hooks into the italic Studios — the one custom stroke that makes this a logotype. -->
+              <path d="M 0 170 L 630 170 L 630 200"
+                    stroke="currentColor" stroke-width="3" fill="none"
+                    stroke-linecap="butt" stroke-linejoin="miter" opacity="0.75"/>
+            </svg>
           </h1>
           <p class="hero-tagline">A house for sound.</p>
         </div>
@@ -443,12 +514,24 @@
       </div>
     </section>
 
-    <!-- ═══ LABS FEATURED ═══ Full chartreuse band; ink-on-green. ═══════ -->
+    <!--
+      ═══ LABS FEATURED ═══
+      Names index (left) + live preview panel (right). No numbers.
+      Ink-on-green: the signature high-contrast pairing.
+      Preview panel runs the SAME wave-field engine as the hero, with a
+      preset per product. Hover/focus a name switches the preview.
+    -->
     <section class="section labs" id="labs" aria-labelledby="labs-eyebrow">
       <div class="section-inner">
         <div class="section-eyebrow" id="labs-eyebrow"><span>Labs</span></div>
         <h2 class="labs-lead">The newest wing of the house.</h2>
-        <ol class="labs-experiments" role="list"></ol>
+        <div class="labs-grid">
+          <ol class="labs-index" role="list" id="labs-index"></ol>
+          <div class="labs-preview" id="labs-preview">
+            <canvas id="labs-canvas" aria-hidden="true"></canvas>
+            <div class="labs-preview-label" id="labs-preview-label">Manifold</div>
+          </div>
+        </div>
       </div>
     </section>
   </main>
@@ -469,11 +552,17 @@
       { num: '04', name: 'Labs',         line: 'The experimental wing.',                                       href: '#labs' },
     ];
 
+    // NO NUMBERS. Data-driven — one entry per product; the module script
+    // wires each name to its enginePreset so the preview loop switches
+    // to that product's parameter set on hover/focus/cycle.
     const LABS = [
-      { num: '01', name: 'Manifold',  line: 'Your music, made visible.',       cta: 'Launch',     href: '#manifold' },
-      { num: '02', name: 'Frequency', line: 'Find yours in four questions.',   cta: 'Find yours', href: '#frequency' },
-      { num: '03', name: 'Noted',     line: 'Talk to your mix.',               cta: 'Launch',     href: 'https://noted.melomaniacstudios.com' },
+      { name: 'Manifold',  line: 'Your music, made visible.',       cta: 'Launch',     href: '#manifold',                              enginePreset: 'manifold'  },
+      { name: 'Frequency', line: 'Find yours in four questions.',   cta: 'Find yours', href: '#frequency',                             enginePreset: 'frequency' },
+      { name: 'Noted',     line: 'Talk to your mix.',               cta: 'Launch',     href: 'https://noted.melomaniacstudios.com',    enginePreset: 'noted'     },
     ];
+    // Expose to the module script so hover/cycle wiring and preview engine
+    // can read the same source of truth.
+    window.__LABS = LABS;
 
     const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => (
       { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]
@@ -495,20 +584,19 @@
       `).join('');
     }
 
-    const labsEl = document.querySelector('.labs-experiments');
-    if (labsEl) {
-      labsEl.innerHTML = LABS.map((l) => {
+    const labsIndexEl = document.getElementById('labs-index');
+    if (labsIndexEl) {
+      labsIndexEl.innerHTML = LABS.map((l, i) => {
         const isExternal = /^https?:\/\//.test(l.href);
         const extAttrs = isExternal ? ' target="_blank" rel="noopener"' : '';
         return `
-          <li class="lab">
-            <a class="lab-link" href="${escapeHtml(l.href)}"${extAttrs}>
-              <span class="lab-num" aria-hidden="true">${escapeHtml(l.num)}</span>
-              <div class="lab-body">
-                <div class="lab-name">${escapeHtml(l.name)}</div>
-                <div class="lab-line">${escapeHtml(l.line)}</div>
-                <div class="lab-cta">${escapeHtml(l.cta)}<span class="lab-arrow" aria-hidden="true">&rarr;</span></div>
-              </div>
+          <li class="labs-index-row" data-lab-idx="${i}">
+            <a class="labs-name-link" href="${escapeHtml(l.href)}"${extAttrs}
+               data-preset="${escapeHtml(l.enginePreset)}"
+               data-name="${escapeHtml(l.name)}">
+              <div class="labs-name">${escapeHtml(l.name)}</div>
+              <div class="labs-line">${escapeHtml(l.line)}</div>
+              <div class="labs-cta-mini">${escapeHtml(l.cta)}<span class="labs-cta-arrow" aria-hidden="true">&rarr;</span></div>
             </a>
           </li>
         `;
@@ -658,6 +746,10 @@
           clearTimeout(fallbackTimer);
           document.body.classList.add('hero-live');
         });
+        // Kick off the Labs preview engine once THREE is loaded. Isolated
+        // from hero (own renderer, own scene, own beat clock, duplicated
+        // shader source) so a failure here can't affect the hero.
+        try { initLabs(THREE); } catch (e) { console.warn('[labs] init failed.', e); }
       } catch (err) {
         clearTimeout(fallbackTimer);
         console.warn('[hero] Module unavailable — poster fallback.', err);
@@ -1226,6 +1318,415 @@
         requestAnimationFrame(tick);
       }
       requestAnimationFrame(tick);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // LABS PREVIEW ENGINE
+    //   Same wave-field engine as the hero — 3 stationary emitters, 4-beat
+    //   causal wavepackets, kick envelope summed across beats. Presets are
+    //   parameter sets on that engine: emitters, particle distribution,
+    //   Chladni values, assembly tilt.
+    //   • Ink particles on green (no green particles here — the field
+    //     inverts the hero's palette so the chartreuse band stays loud).
+    //   • Hover / focus on a name switches the preset (~260 ms opacity dip
+    //     covers the geometry rebuild). Auto-cycles every 6 s when idle.
+    //   • Shader source is duplicated verbatim from the hero so that
+    //     initHero remains untouched (frozen).
+    // ═══════════════════════════════════════════════════════════════════
+    function initLabs(THREE) {
+      const canvas    = document.getElementById('labs-canvas');
+      const previewEl = document.getElementById('labs-preview');
+      const labelEl   = document.getElementById('labs-preview-label');
+      if (!canvas || !previewEl || !labelEl) return;
+
+      const LABS = window.__LABS || [];
+      if (!LABS.length) return;
+
+      let renderer;
+      try {
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      } catch (e) {
+        console.warn('[labs] WebGL init failed.', e);
+        return;
+      }
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setClearColor(0x000000, 0);  // transparent → chartreuse section shows through
+      const pixelRatio = renderer.getPixelRatio();
+
+      const BPM = 110;
+      const BEAT_PERIOD = 60 / BPM;
+      const SPEED = 0.80;
+      const INK = 0x141310;
+      const inkC = new THREE.Color(INK);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+      camera.position.z = 8;
+      const assembly = new THREE.Group();
+      scene.add(assembly);
+
+      // ── PRESETS ─────────────────────────────────────────────────────
+      const PRESETS = {
+        manifold: {
+          count: 3200,
+          distribution: 'sphere',
+          sphereR: 2.0,
+          emitters: [
+            { pos: [-1.0,  0.4,  0.3], omega: 2.1, amp: 1.05, phase: 0.00 },
+            { pos: [ 1.0, -0.3,  0.3], omega: 2.3, amp: 1.05, phase: 1.05 },
+            { pos: [ 0.0,  0.8, -0.4], omega: 1.8, amp: 1.05, phase: 2.10 },
+          ],
+          chladni: [1.8, 1.8, 0.06],
+          tilt: 0.28,
+        },
+        frequency: {
+          count: 3500,
+          distribution: 'quadrants',
+          quadOffset: [1.4, 1.0, 0.4],
+          quadRadius: 1.05,
+          emitters: [
+            // "Question" pair (top), same freq/phase — beat together.
+            { pos: [ 1.4, 1.0, 0], omega: 2.4, amp: 1.15, phase: 0 },
+            { pos: [-1.4, 1.0, 0], omega: 2.4, amp: 1.15, phase: 0 },
+            // "Answer" (bottom), opposite phase.
+            { pos: [ 0.0,-1.0, 0], omega: 1.8, amp: 1.10, phase: Math.PI },
+          ],
+          chladni: [1.6, 2.4, 0.08],
+          tilt: 0.20,
+        },
+        noted: {
+          count: 2800,
+          distribution: 'horizontal',
+          stripW: 5.6, stripH: 1.0, stripD: 0.5,
+          emitters: [
+            { pos: [-1.8, 0.10, 0], omega: 2.2, amp: 1.00, phase: 0 },
+            { pos: [ 0.0,-0.10, 0], omega: 2.6, amp: 1.15, phase: Math.PI / 2 },
+            { pos: [ 1.8, 0.10, 0], omega: 2.2, amp: 1.00, phase: Math.PI },
+          ],
+          chladni: [3.0, 1.2, 0.08],
+          tilt: 0.10,
+        },
+      };
+
+      // Distribution → per-particle base positions
+      function buildDist(preset, N) {
+        const pos = new Float32Array(N * 3);
+        const sizeA = new Float32Array(N);
+        const alphaA = new Float32Array(N);
+        for (let i = 0; i < N; i++) {
+          let x, y, z;
+          if (preset.distribution === 'sphere') {
+            const r = Math.cbrt(Math.random()) * preset.sphereR;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            x = r * Math.sin(phi) * Math.cos(theta);
+            y = r * Math.sin(phi) * Math.sin(theta);
+            z = r * Math.cos(phi);
+          } else if (preset.distribution === 'quadrants') {
+            const q = i % 4;
+            const [ox, oy, dz] = preset.quadOffset;
+            const sx = (q === 0 || q === 3) ?  1 : -1;
+            const sy = (q === 0 || q === 1) ?  1 : -1;
+            const r = Math.sqrt(Math.random()) * preset.quadRadius;
+            const t = Math.random() * Math.PI * 2;
+            x = sx * ox + Math.cos(t) * r;
+            y = sy * oy + Math.sin(t) * r;
+            z = (Math.random() - 0.5) * dz;
+          } else { // horizontal
+            x = (Math.random() - 0.5) * preset.stripW;
+            y = (Math.random() - 0.5) * preset.stripH;
+            z = (Math.random() - 0.5) * preset.stripD;
+          }
+          pos[i*3]   = x;
+          pos[i*3+1] = y;
+          pos[i*3+2] = z;
+          sizeA[i]  = 0.55 + Math.random() * 0.55;
+          alphaA[i] = 0.38 + Math.random() * 0.22;
+        }
+        return { pos, sizeA, alphaA };
+      }
+
+      // ── SHADER (duplicated verbatim from hero — no shared state) ────
+      const LABS_VS = /* glsl */`
+        precision highp float;
+        uniform float uTime;
+        uniform float uSpeedScale;
+        uniform float uPixelRatio;
+        uniform float uSizeBase;
+        uniform float uKickBoost;
+
+        uniform vec3  uE0Pos;  uniform vec3  uE1Pos;  uniform vec3  uE2Pos;
+        uniform vec3  uEOmegas;
+        uniform vec3  uEAmps;
+        uniform vec3  uEPhases;
+
+        uniform vec4  uBeatTimes;
+        uniform vec4  uBeatAmps;
+
+        uniform vec2  uChladniK;
+        uniform float uChladniAmp;
+
+        attribute vec3  aColor;
+        attribute float aSize;
+        attribute float aAlpha;
+
+        varying vec3  vColor;
+        varying float vAlpha;
+
+        float beatContrib(float r, float omega, float phase, float amp,
+                          float beatTime, float beatAmp, float t) {
+          if (beatTime < 0.0) return 0.0;
+          float tau = (t - beatTime) * uSpeedScale;
+          if (tau <= 0.0) return 0.0;
+          float c = 2.0;
+          float tauLocal = tau - r / c;
+          if (tauLocal < 0.0) return 0.0;
+          float attack    = 1.0 - exp(-tauLocal / 0.03);
+          float localDec  = exp(-tauLocal / 0.20);
+          float globalDec = exp(-tau      / 0.35);
+          float envelope  = attack * localDec * globalDec;
+          float k  = omega * 0.5;
+          float ph = k * r - omega * tau + phase;
+          return amp * beatAmp * envelope * cos(ph) / (1.0 + r * 0.15);
+        }
+
+        void main() {
+          vec3 basePos = position;
+
+          vec3  d0   = basePos - uE0Pos;
+          float r0   = length(d0);
+          vec3  dir0 = d0 / max(r0, 0.001);
+          float uE0  = beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.x, uBeatAmps.x, uTime)
+                     + beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.y, uBeatAmps.y, uTime)
+                     + beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.z, uBeatAmps.z, uTime)
+                     + beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.w, uBeatAmps.w, uTime);
+
+          vec3  d1   = basePos - uE1Pos;
+          float r1   = length(d1);
+          vec3  dir1 = d1 / max(r1, 0.001);
+          float uE1  = beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.x, uBeatAmps.x, uTime)
+                     + beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.y, uBeatAmps.y, uTime)
+                     + beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.z, uBeatAmps.z, uTime)
+                     + beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.w, uBeatAmps.w, uTime);
+
+          vec3  d2   = basePos - uE2Pos;
+          float r2   = length(d2);
+          vec3  dir2 = d2 / max(r2, 0.001);
+          float uE2  = beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.x, uBeatAmps.x, uTime)
+                     + beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.y, uBeatAmps.y, uTime)
+                     + beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.z, uBeatAmps.z, uTime)
+                     + beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.w, uBeatAmps.w, uTime);
+
+          vec3  vecField    = dir0 * uE0 + dir1 * uE1 + dir2 * uE2;
+          float scalarField = uE0 + uE1 + uE2;
+
+          float chladni = uChladniAmp * sin(uChladniK.x * basePos.x) * sin(uChladniK.y * basePos.y);
+          scalarField += chladni;
+          vecField.z  += chladni * 0.35;
+
+          vec3 displaced = basePos + vecField * 0.55;
+          vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
+          gl_Position = projectionMatrix * mvPosition;
+
+          float mag = min(abs(scalarField), 1.6);
+          float excited = smoothstep(0.05, 0.60, mag);
+          float alphaMul = (1.0 + excited * 1.4) * (1.0 + uKickBoost * 0.5);
+          float sizeMul  = (1.0 + excited * 0.55) * (1.0 + uKickBoost * 0.35);
+
+          gl_PointSize = uSizeBase * aSize * sizeMul * uPixelRatio * (22.0 / max(-mvPosition.z, 0.1));
+
+          vColor = aColor;
+          vAlpha = aAlpha * alphaMul;
+        }
+      `;
+
+      const LABS_FS = /* glsl */`
+        precision mediump float;
+        varying vec3  vColor;
+        varying float vAlpha;
+        void main() {
+          vec2 uv = gl_PointCoord - 0.5;
+          float d2 = dot(uv, uv);
+          float a = smoothstep(0.24, 0.19, d2);
+          if (a <= 0.001) discard;
+          gl_FragColor = vec4(vColor, a * vAlpha);
+        }
+      `;
+
+      const fluidGeom = new THREE.BufferGeometry();
+      const fluidMat = new THREE.ShaderMaterial({
+        uniforms: {
+          uTime:        { value: 0 },
+          uSpeedScale:  { value: SPEED },
+          uPixelRatio:  { value: pixelRatio },
+          uSizeBase:    { value: 1.0 },
+          uKickBoost:   { value: 0 },
+          uE0Pos:       { value: new THREE.Vector3() },
+          uE1Pos:       { value: new THREE.Vector3() },
+          uE2Pos:       { value: new THREE.Vector3() },
+          uEOmegas:     { value: new THREE.Vector3() },
+          uEAmps:       { value: new THREE.Vector3() },
+          uEPhases:     { value: new THREE.Vector3() },
+          uBeatTimes:   { value: new THREE.Vector4(-1, -1, -1, -1) },
+          uBeatAmps:    { value: new THREE.Vector4( 0,  0,  0,  0) },
+          uChladniK:    { value: new THREE.Vector2(2, 2) },
+          uChladniAmp:  { value: 0 },
+        },
+        vertexShader: LABS_VS,
+        fragmentShader: LABS_FS,
+        transparent: true,
+        depthWrite: false,
+        depthTest:  true,
+        blending:   THREE.NormalBlending,
+      });
+      const fluid = new THREE.Points(fluidGeom, fluidMat);
+      assembly.add(fluid);
+
+      let currentChladniPeak = 0;
+
+      // ── Apply a preset (build geometry, wire uniforms, tilt) ─────────
+      function applyPreset(name) {
+        const p = PRESETS[name];
+        if (!p) return;
+        const parts = buildDist(p, p.count);
+        const N = p.count;
+        const col = new Float32Array(N * 3);
+        for (let i = 0; i < N; i++) {
+          col[i*3] = inkC.r; col[i*3+1] = inkC.g; col[i*3+2] = inkC.b;
+        }
+        fluidGeom.setAttribute('position', new THREE.BufferAttribute(parts.pos, 3));
+        fluidGeom.setAttribute('aColor',   new THREE.BufferAttribute(col, 3));
+        fluidGeom.setAttribute('aSize',    new THREE.BufferAttribute(parts.sizeA, 1));
+        fluidGeom.setAttribute('aAlpha',   new THREE.BufferAttribute(parts.alphaA, 1));
+
+        const e = p.emitters;
+        fluidMat.uniforms.uE0Pos.value.set(e[0].pos[0], e[0].pos[1], e[0].pos[2]);
+        fluidMat.uniforms.uE1Pos.value.set(e[1].pos[0], e[1].pos[1], e[1].pos[2]);
+        fluidMat.uniforms.uE2Pos.value.set(e[2].pos[0], e[2].pos[1], e[2].pos[2]);
+        fluidMat.uniforms.uEOmegas.value.set(e[0].omega, e[1].omega, e[2].omega);
+        fluidMat.uniforms.uEAmps.value.set  (e[0].amp,   e[1].amp,   e[2].amp);
+        fluidMat.uniforms.uEPhases.value.set(e[0].phase, e[1].phase, e[2].phase);
+        fluidMat.uniforms.uChladniK.value.set(p.chladni[0], p.chladni[1]);
+        currentChladniPeak = p.chladni[2];
+
+        assembly.rotation.x = p.tilt;
+        assembly.rotation.z = 0;
+      }
+
+      // ── Resize (ResizeObserver keeps it in sync when the panel changes) ──
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        const w = Math.max(1, Math.floor(rect.width));
+        const h = Math.max(1, Math.floor(rect.height));
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        fluidMat.uniforms.uPixelRatio.value = renderer.getPixelRatio();
+      }
+      const ro = new ResizeObserver(resize);
+      ro.observe(previewEl);
+      window.addEventListener('resize', resize);
+
+      // ── Beat clock (independent instance from hero) ────────────────
+      const CLOCK_PREADVANCE = BEAT_PERIOD * 4 + 0.15;
+      const clock = new THREE.Clock(false);
+      const currentT = () => clock.getElapsedTime() + CLOCK_PREADVANCE;
+
+      const beatTimesArr = [-1, -1, -1, -1];
+      const beatAmpsArr  = [ 0,  0,  0,  0];
+
+      function updateBeatState(T) {
+        const idx = Math.floor(T / BEAT_PERIOD);
+        for (let k = 0; k < 4; k++) {
+          const bi = idx - k;
+          if (bi >= 0) {
+            beatTimesArr[k] = bi * BEAT_PERIOD;
+            beatAmpsArr[k]  = (bi % 4 === 0) ? 1.35 : 0.85;
+          } else {
+            beatTimesArr[k] = -1;
+            beatAmpsArr[k]  = 0;
+          }
+        }
+        fluidMat.uniforms.uBeatTimes.value.set(beatTimesArr[0], beatTimesArr[1], beatTimesArr[2], beatTimesArr[3]);
+        fluidMat.uniforms.uBeatAmps.value.set(beatAmpsArr[0], beatAmpsArr[1], beatAmpsArr[2], beatAmpsArr[3]);
+
+        // Kick envelope summed across the 4 tracked beats (matches hero).
+        let kick = 0;
+        for (let k = 0; k < 4; k++) {
+          const bt = beatTimesArr[k];
+          if (bt < 0) continue;
+          const tauK = (T - bt) * SPEED;
+          if (tauK <= 0) continue;
+          const attackK = 1 - Math.exp(-tauK / 0.03);
+          const decayK  = Math.exp(-tauK / 0.35);
+          const peakK   = beatAmpsArr[k] > 1.0 ? 0.55 : 0.30;
+          kick += peakK * attackK * decayK;
+        }
+        fluidMat.uniforms.uKickBoost.value = kick;
+
+        // Chladni amplitude modulates slowly, scaled by the preset's peak.
+        fluidMat.uniforms.uChladniAmp.value = currentChladniPeak * (0.5 + 0.5 * Math.sin(T * SPEED * 0.035));
+      }
+
+      function frame(T) {
+        updateBeatState(T);
+        fluidMat.uniforms.uTime.value = T;
+        renderer.render(scene, camera);
+      }
+
+      // ── Preset switching + hover + cycle ───────────────────────────
+      const rows  = document.querySelectorAll('.labs-index-row');
+      const links = document.querySelectorAll('.labs-name-link');
+      let currentIdx = 0;
+      let hoveredIdx = null;
+      let cycleTimer = null;
+
+      function goTo(idx, animate = true) {
+        currentIdx = idx;
+        rows.forEach((row, i) => row.classList.toggle('is-active', i === idx));
+        labelEl.textContent = LABS[idx].name;
+        if (animate) {
+          previewEl.classList.add('is-switching');
+          setTimeout(() => {
+            applyPreset(LABS[idx].enginePreset);
+            setTimeout(() => previewEl.classList.remove('is-switching'), 30);
+          }, 260);
+        } else {
+          applyPreset(LABS[idx].enginePreset);
+        }
+      }
+
+      links.forEach((link, i) => {
+        link.addEventListener('mouseenter', () => {
+          hoveredIdx = i;
+          if (i !== currentIdx) goTo(i);
+        });
+        link.addEventListener('mouseleave', () => { hoveredIdx = null; });
+        link.addEventListener('focus', () => {
+          hoveredIdx = i;
+          if (i !== currentIdx) goTo(i);
+        });
+        link.addEventListener('blur', () => { hoveredIdx = null; });
+      });
+
+      cycleTimer = setInterval(() => {
+        if (hoveredIdx !== null) return;
+        const next = (currentIdx + 1) % LABS.length;
+        goTo(next);
+      }, 6000);
+
+      // Initial state (no fade)
+      goTo(0, false);
+      resize();
+
+      // First frame + start rAF
+      frame(currentT());
+      clock.start();
+      function tickLabs() {
+        frame(currentT());
+        requestAnimationFrame(tickLabs);
+      }
+      requestAnimationFrame(tickLabs);
     }
   </script>
 </body>

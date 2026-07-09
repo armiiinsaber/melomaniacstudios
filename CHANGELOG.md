@@ -292,10 +292,78 @@ Each one traced to its root and fixed.
   focus rings; hover animations disabled under
   `prefers-reduced-motion: reduce`. HTML escapes in the data builder.
 
+### Added — the house cut + bespoke wordmark + Labs redesign
+Two upgrades on approved House. Hero body (canvas, physics, first-paint
+contract) remained frozen — only its wordmark HTML was swapped by
+explicit request.
+
+**Proprietary type instance — "the house cut"**
+- Fraunces now loaded as a **full variable font** including the `SOFT`
+  and `WONK` custom axes: `Fraunces:ital,opsz,wght,SOFT,WONK@…`.
+- One locked instance — **the house cut** — applied everywhere the
+  display serif appears via `var(--house-serif-mods)` (SOFT 40, WONK 0).
+  Slightly softer terminals, no idiosyncratic swashes — more minimal and
+  editorial than Fraunces's default.
+- Documented in `DESIGN.md` under a new "The house cut" heading (§3)
+  with axis values + CSS pattern, so it can't drift.
+- Applied to: hero wordmark SVG, hero tagline, `.pillar-num`,
+  `.pillar-name`, `.pillar-arrow`, `.labs-lead`, `.labs-name`,
+  `.labs-cta-arrow`.
+
+**Bespoke SVG wordmark (hero + future footer)**
+- Wordmark now ships as inline SVG in `<h1 class="hero-wordmark">` —
+  two `<text>` lines ("Melomaniac" roman, "Studios" italic) in the
+  house cut, plus one hand-drawn bespoke path: a signature hairline
+  rule that runs below "Melomaniac" and hooks down toward "Studios".
+  This is the honest first-pass bespoke element.
+- Accessible text fallback via `.wordmark-fallback` (visually hidden).
+- **Follow-up note in DESIGN.md**: a fully flattened-to-paths version
+  with hand-modified letterforms needs a font-to-paths tool (not
+  runnable inline). Logged so it can't drift into "we forgot."
+
+**Labs redesigned — no numbers, live previews**
+- Killed the numbered 3-card grid entirely.
+- New layout: **left column = product names** stacked in the house cut
+  (`clamp(2.4rem, 5vw, 5rem)`), no numbers. **Right column = live
+  preview canvas** running the same wave-field engine as the hero.
+- Hover / focus on a name switches the preview to that product's
+  parameter preset (opacity dip ~280 ms covers the geometry rebuild).
+- **Auto-cycle every 6 s** when idle, interrupted by hover/focus.
+- **Ink particles on green**: the labs canvas is transparent so the
+  chartreuse band shows through; every particle is ink for the
+  signature high-contrast pairing. The green band stays the loud
+  accent moment.
+- **Data-driven**: `LABS[]` now includes `enginePreset`; adding a
+  future product is one entry — name, line, cta, href, preset.
+- Mobile (≤ 900 px): grid stacks, canvas below names (order: 2).
+  No swipe interaction yet — MVP simplification.
+- Focus states: keyboard-focusable names, ink outline ring, animated
+  ink bar sliding in on the left to mark the active row.
+
+**Labs preview engine (isolated instance)**
+- Own `<canvas>`, own renderer (`alpha: true` → transparent), own
+  scene, own beat clock, own SPEED 0.80. Runs independently from
+  hero — a Labs failure can't affect the hero.
+- Shader source duplicated verbatim from hero's `FLUID_VS/FS` (kept
+  hero function untouched, as it must). Same causal 4-beat wavepacket
+  physics, same summed kick envelope, same existence/excitation model.
+- Three presets: 
+  - **Manifold** — filled sphere of 3200 particles + 3 emitters inside
+    → reads as a form deforming to the field.
+  - **Frequency** — 4-quadrant particle clusters (3500 particles) + 3
+    emitters: a "question" pair (top, same freq/phase) and an "answer"
+    (bottom, opposite phase) so beats pulse Q → A rhythm.
+  - **Noted** — horizontal band (5.6 × 1.0 × 0.5) of 2800 particles + 3
+    emitters along the horizontal → reads as a waveform strip.
+- `ResizeObserver` on the preview element keeps the canvas in sync
+  when the panel changes size.
+- Clock pre-advanced ~2.33 s so first paint of a preset already has 4
+  beats in flight (matches hero's first-paint contract).
+
 ### Pending review
-- Serving locally at http://127.0.0.1:4200 — awaiting founder approval on
-  The House + Labs featured before touching pillar pages, Early Access,
-  or the footer (per DESIGN.md §7).
+- Serving locally at http://127.0.0.1:4200 — awaiting approval on the
+  type upgrade + Labs redesign before touching pillar pages, Early
+  Access, footer (per DESIGN.md §7).
 
 ### Next
 - The House editorial index (four pillars as equals).
