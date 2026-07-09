@@ -119,14 +119,34 @@
     }
 
     .hero-eyebrow {
-      display: inline-flex; align-items: center; gap: .85rem;
+      /*
+        Wrapping-friendly: inline-block sizes to content on wide screens
+        (one-line "— RECORD LABEL · SOUND DESIGN · MELOMANIA · LABS"), and
+        wraps to balanced lines when the viewport can't hold it — never
+        shrinking the type to fit. `text-wrap: balance` distributes the
+        pillar list evenly so no single item ends up orphaned on its own
+        line; `&nbsp;` inside each two-word pillar name ("Record Label",
+        "Sound Design") keeps the pair intact so breaks only ever happen
+        at the middle-dot separators.
+      */
+      display: inline-block;
+      max-width: 100%;
+      vertical-align: top;
       font-size: .68rem; letter-spacing: .34em; text-transform: uppercase;
       color: var(--ink);
       font-weight: 500;
+      line-height: 1.9;
+      text-wrap: balance;
       align-self: start; justify-self: start;
     }
     .hero-eyebrow::before {
-      content: ''; width: 30px; height: 1px; background: var(--ink);
+      content: '';
+      display: inline-block;
+      width: 30px; height: 1px;
+      background: var(--ink);
+      vertical-align: middle;
+      margin-right: .85rem;
+      transform: translateY(-.1em);
     }
 
     .hero-main {
@@ -472,7 +492,7 @@
         <canvas id="hero-canvas" aria-hidden="true"></canvas>
       </div>
       <div class="hero-content">
-        <div class="hero-eyebrow"><span>Melomaniac Studios</span></div>
+        <div class="hero-eyebrow"><span>Record&nbsp;Label · Sound&nbsp;Design · Melomania · Labs</span></div>
         <div class="hero-main">
           <h1 class="hero-wordmark">
             <!-- Accessible fallback text. -->
