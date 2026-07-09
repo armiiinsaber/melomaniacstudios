@@ -17,6 +17,9 @@
     via var(--house-serif-mods). See DESIGN.md § "The house cut".
   -->
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,100..900,0..100,0..1;1,9..144,100..900,0..100,0..1&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- Supabase for auth + waitlist. Loaded from CDN; if it fails, auth and
+       waitlist just no-op (the rest of the site keeps working). -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="window._sbFailed=true"></script>
   <style>
     :root {
       --green: #B8F06E;
@@ -462,6 +465,580 @@
       }
     }
 
+    /* ═══════════════════════════════════════════════════════════════════
+       PAGE ROUTING — hash router; each page is a top-level .page div.
+       Only .page.on displays. The home page (hero + house + labs) is on
+       by default; hash changes to #record-label / #sound-design /
+       #melomania / #manifold / #early-access swap the visible page.
+       ═══════════════════════════════════════════════════════════════════ */
+    .page { display: none; }
+    .page.on { display: block; }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       PILLAR PAGE FRAMEWORK — subtle top nav, editorial hero, body sections
+       ═══════════════════════════════════════════════════════════════════ */
+    .pillar-nav {
+      position: absolute;
+      top: clamp(1.6rem, 3vw, 2.5rem);
+      left: clamp(1.5rem, 4vw, 3.5rem);
+      right: clamp(1.5rem, 4vw, 3.5rem);
+      z-index: 5;
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: 'Inter', sans-serif;
+      font-size: .68rem; letter-spacing: .3em; text-transform: uppercase;
+      font-weight: 500;
+    }
+    .pillar-nav a {
+      color: currentColor;
+      display: inline-flex; align-items: center; gap: .55rem;
+      transition: opacity .5s ease;
+    }
+    .pillar-nav a:hover { opacity: .65; }
+    .pillar-nav .back::before {
+      content: '←';
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 24, 'wght' 300, var(--house-serif-mods);
+      font-size: 1.3em; line-height: 1;
+      transition: transform .5s ease;
+      display: inline-block;
+    }
+    .pillar-nav .back:hover::before { transform: translateX(-4px); }
+
+    .pillar-hero {
+      padding: clamp(5rem, 12vw, 12rem) clamp(1.5rem, 4vw, 3.5rem) clamp(3rem, 5vw, 5rem);
+      border-bottom: 1px solid var(--hairline);
+      position: relative;
+    }
+    .pillar-hero-inner { max-width: 1200px; margin: 0 auto; }
+    .pillar-hero-tag {
+      font-size: .68rem; letter-spacing: .34em; text-transform: uppercase;
+      color: var(--ink);
+      font-weight: 500;
+      margin-bottom: 2rem;
+      display: inline-flex; align-items: center; gap: .85rem;
+    }
+    .pillar-hero-tag::before {
+      content: ''; display: inline-block; width: 30px; height: 1px; background: var(--ink);
+      transform: translateY(-.1em);
+    }
+    .pillar-hero-title {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
+      font-weight: 300;
+      font-size: clamp(3.5rem, 10vw, 8.5rem);
+      line-height: .9;
+      letter-spacing: -.028em;
+      color: var(--ink);
+      margin-bottom: 1.5rem;
+      text-wrap: balance;
+      max-width: 16ch;
+    }
+    .pillar-hero-lead {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 24, 'wght' 300, var(--house-serif-mods);
+      font-style: italic;
+      font-size: clamp(1.15rem, 2.2vw, 1.65rem);
+      line-height: 1.4;
+      color: var(--ink-soft);
+      max-width: 40ch;
+      text-wrap: balance;
+    }
+    .pillar-body {
+      padding: clamp(3rem, 6vw, 6rem) clamp(1.5rem, 4vw, 3.5rem);
+      max-width: 1200px; margin: 0 auto;
+      display: flex; flex-direction: column;
+      gap: clamp(3rem, 5vw, 5rem);
+    }
+    .pillar-section { display: flex; flex-direction: column; gap: 1rem; }
+    .pillar-section-label {
+      font-size: .68rem; letter-spacing: .34em; text-transform: uppercase;
+      color: var(--ink-soft); font-weight: 500;
+      margin-bottom: .5rem;
+      display: inline-flex; align-items: center; gap: .85rem;
+    }
+    .pillar-section-label::before {
+      content: ''; display: inline-block; width: 20px; height: 1px; background: var(--ink-soft);
+    }
+    .pillar-text {
+      font-size: 1.05rem; line-height: 1.65;
+      color: var(--ink); max-width: 58ch;
+    }
+    .pillar-text strong { font-weight: 500; }
+    .pillar-text a { color: currentColor; border-bottom: 1px solid var(--hairline); transition: border-color .3s; }
+    .pillar-text a:hover { border-bottom-color: var(--ink); }
+
+    /* Pill buttons + links */
+    .pill-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .pill {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .65rem 1.2rem;
+      border: 1px solid var(--ink);
+      border-radius: 2px;
+      color: var(--ink);
+      font-size: .68rem; letter-spacing: .25em; text-transform: uppercase;
+      font-family: 'Inter', sans-serif; font-weight: 500;
+      background: transparent;
+      cursor: pointer; text-decoration: none;
+      transition: background .3s ease, color .3s ease, border-color .3s ease;
+    }
+    .pill:hover { background: var(--ink); color: var(--paper); }
+    .pill.fill { background: var(--green); border-color: var(--green); color: var(--ink); }
+    .pill.fill:hover { background: #cbff7e; border-color: #cbff7e; color: var(--ink); }
+
+    /* Capabilities list */
+    .pillar-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .75rem; }
+    .pillar-list li {
+      font-size: 1.05rem; color: var(--ink);
+      display: flex; align-items: baseline; gap: 1rem;
+    }
+    .pillar-list li::before {
+      content: ''; display: inline-block;
+      width: 12px; height: 1px; background: var(--ink-soft);
+      flex-shrink: 0; transform: translateY(-.3em);
+    }
+
+    /* Brand chips */
+    .brand-row { display: flex; flex-wrap: wrap; gap: .55rem; }
+    .brand-chip {
+      display: inline-block;
+      padding: .55rem 1.1rem;
+      border: 1px solid var(--hairline);
+      border-radius: 2px;
+      font-family: 'Inter', sans-serif;
+      font-size: .88rem;
+      color: var(--ink);
+      background: transparent;
+    }
+
+    /* Event card (Melomania) */
+    .event-card {
+      border: 1px solid var(--hairline); border-radius: 2px;
+      padding: 2rem 2.5rem;
+      max-width: 34rem;
+      display: flex; flex-direction: column; gap: .7rem;
+    }
+    .event-card-label {
+      font-size: .68rem; letter-spacing: .34em; text-transform: uppercase;
+      color: var(--ink-soft); font-weight: 500;
+    }
+    .event-card-date {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
+      font-size: clamp(2.8rem, 5.5vw, 4.5rem);
+      line-height: .9;
+      letter-spacing: -.02em;
+      color: var(--ink);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       MELOMANIA — dark inversion (ink ground, paper text; green may glow)
+       ═══════════════════════════════════════════════════════════════════ */
+    #page-melomania { background: var(--ink); color: var(--paper); min-height: 100vh; }
+    #page-melomania .pillar-nav,
+    #page-melomania .pillar-nav a { color: var(--paper); }
+    #page-melomania .pillar-hero-tag { color: var(--paper); }
+    #page-melomania .pillar-hero-tag::before { background: var(--paper); }
+    #page-melomania .pillar-hero-title { color: var(--paper); }
+    #page-melomania .pillar-hero-lead { color: rgba(245,243,236,.65); }
+    #page-melomania .pillar-hero { border-bottom-color: rgba(245,243,236,.15); }
+    #page-melomania .pillar-section-label { color: rgba(245,243,236,.55); }
+    #page-melomania .pillar-section-label::before { background: rgba(245,243,236,.55); }
+    #page-melomania .pillar-text { color: rgba(245,243,236,.9); }
+    #page-melomania .event-card { border-color: rgba(245,243,236,.2); }
+    #page-melomania .event-card-label { color: rgba(245,243,236,.55); }
+    #page-melomania .event-card-date {
+      color: var(--green);
+      text-shadow: 0 0 60px rgba(184,240,110,.35);   /* green may glow on dark */
+    }
+    #page-melomania .pill { border-color: var(--paper); color: var(--paper); }
+    #page-melomania .pill:hover { background: var(--paper); color: var(--ink); }
+    #page-melomania .pill.fill { background: var(--green); border-color: var(--green); color: var(--ink); }
+    #page-melomania .pill.fill:hover { background: #cbff7e; border-color: #cbff7e; color: var(--ink); }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       MANIFOLD — full-viewport WebGL. Dark ground; house-cut UI chrome.
+       ═══════════════════════════════════════════════════════════════════ */
+    #page-manifold {
+      height: 100vh; height: 100svh;
+      overflow: hidden; position: relative;
+      background: #030408;
+    }
+    #mfc { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .mf-topbar {
+      position: absolute;
+      top: clamp(1.5rem, 3vw, 2rem);
+      left: clamp(1.5rem, 4vw, 3.5rem);
+      right: clamp(1.5rem, 4vw, 3.5rem);
+      z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      color: var(--paper);
+    }
+    .mf-back {
+      font-family: 'Inter', sans-serif;
+      color: var(--paper);
+      font-size: .68rem; letter-spacing: .3em; text-transform: uppercase;
+      font-weight: 500;
+      padding: .6rem 1rem;
+      border: 1px solid rgba(245,243,236,.3);
+      border-radius: 2px;
+      background: transparent; cursor: pointer;
+      text-decoration: none;
+      transition: background .3s, border-color .3s;
+    }
+    .mf-back:hover { background: rgba(245,243,236,.08); border-color: var(--paper); }
+    .mf-lbl {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 24, 'wght' 300, var(--house-serif-mods);
+      font-style: italic;
+      font-size: 1rem;
+      color: rgba(184,240,110,.5);
+      letter-spacing: .04em;
+    }
+    #mf-ui {
+      position: absolute; inset: 0; z-index: 5;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 1.5rem; padding: 1.5rem;
+      transition: opacity .8s ease;
+    }
+    .mf-title {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
+      font-weight: 300;
+      font-size: clamp(4rem, 10vw, 8rem);
+      color: var(--green);
+      text-align: center; line-height: 1;
+      letter-spacing: -.02em;
+      text-shadow: 0 0 80px rgba(184,240,110,.4);
+    }
+    .mf-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: .68rem; letter-spacing: .34em; text-transform: uppercase;
+      color: rgba(184,240,110,.4); font-weight: 500;
+      margin-top: -.5rem;
+    }
+    .mf-upl {
+      display: flex; flex-direction: column;
+      align-items: center; gap: .6rem;
+      border: 1px solid rgba(184,240,110,.3);
+      border-radius: 2px;
+      padding: 1.5rem 2.5rem;
+      cursor: pointer;
+      color: rgba(184,240,110,.7);
+      font-family: 'Inter', sans-serif;
+      font-size: .68rem; letter-spacing: .3em; text-transform: uppercase;
+      font-weight: 500;
+      background: transparent;
+      transition: all .3s;
+    }
+    .mf-upl:hover { border-color: var(--green); background: rgba(184,240,110,.05); color: var(--green); }
+    .mf-upl-ico { font-size: 1.4rem; line-height: 1; }
+    #mf-pw { width: 180px; height: 2px; background: rgba(184,240,110,.15); overflow: hidden; display: none; margin-top: -.5rem; }
+    #mf-pb { height: 100%; width: 0; background: var(--green); transition: width .2s; }
+    #mf-st {
+      font-family: 'Inter', sans-serif;
+      font-size: .65rem; letter-spacing: .3em; text-transform: uppercase;
+      color: rgba(184,240,110,.5); font-weight: 500;
+      min-height: 14px;
+    }
+    #mf-ctrl {
+      position: absolute;
+      bottom: clamp(1.5rem, 3vw, 2.5rem);
+      left: 50%; transform: translateX(-50%);
+      z-index: 5;
+      display: none; flex-direction: column; align-items: center; gap: .8rem;
+    }
+    .mf-trk {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 24, 'wght' 300, var(--house-serif-mods);
+      font-style: italic;
+      color: rgba(184,240,110,.6);
+      max-width: 300px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      text-align: center;
+      font-size: 1rem;
+    }
+    .mf-btns { display: flex; gap: .5rem; }
+    .mf-btn {
+      background: transparent;
+      border: 1px solid rgba(184,240,110,.3);
+      color: rgba(184,240,110,.7);
+      font-family: 'Inter', sans-serif;
+      font-size: .65rem; letter-spacing: .25em; text-transform: uppercase;
+      font-weight: 500;
+      padding: .5rem 1rem;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all .3s;
+    }
+    .mf-btn:hover { border-color: var(--green); color: var(--green); background: rgba(184,240,110,.05); }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       EARLY ACCESS — waitlist page
+       ═══════════════════════════════════════════════════════════════════ */
+    .ea-page {
+      padding: clamp(5rem, 11vw, 11rem) clamp(1.5rem, 4vw, 3.5rem);
+      max-width: 720px; margin: 0 auto;
+    }
+    .ea-tag {
+      font-size: .68rem; letter-spacing: .34em; text-transform: uppercase;
+      color: var(--ink); font-weight: 500;
+      margin-bottom: 2rem;
+      display: inline-flex; align-items: center; gap: .85rem;
+    }
+    .ea-tag::before {
+      content: ''; display: inline-block; width: 30px; height: 1px; background: var(--ink);
+      transform: translateY(-.1em);
+    }
+    .ea-h {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
+      font-weight: 300;
+      font-size: clamp(3.5rem, 10vw, 8rem);
+      line-height: .9;
+      letter-spacing: -.028em;
+      color: var(--ink);
+      margin-bottom: 2rem;
+      text-wrap: balance;
+      max-width: 12ch;
+    }
+    .ea-h em { font-style: italic; }
+    .ea-story {
+      font-size: 1rem; line-height: 1.7;
+      color: var(--ink);
+      margin-bottom: 2.5rem;
+      max-width: 58ch;
+    }
+    .ea-story strong { font-weight: 500; }
+    .ea-form { display: flex; flex-direction: column; gap: .8rem; max-width: 480px; }
+    .ea-row { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+    @media (max-width: 480px) { .ea-row { grid-template-columns: 1fr; } }
+    .mi {
+      font-family: 'Inter', sans-serif;
+      padding: .95rem 1rem;
+      border: 1px solid var(--hairline);
+      background: var(--paper);
+      color: var(--ink);
+      font-size: .95rem;
+      border-radius: 2px;
+      transition: border-color .3s;
+      width: 100%;
+    }
+    .mi::placeholder { color: rgba(20,19,16,.4); }
+    .mi:focus { border-color: var(--ink); outline: none; }
+    .msub {
+      padding: 1rem;
+      background: var(--green);
+      border: 1px solid var(--green);
+      border-radius: 2px;
+      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+      font-size: .68rem; letter-spacing: .3em; text-transform: uppercase;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .3s, border-color .3s;
+      margin-top: .3rem;
+    }
+    .msub:hover { background: #cbff7e; border-color: #cbff7e; }
+    .msub:disabled { opacity: .5; cursor: not-allowed; }
+    .merr, .ea-err { font-size: .85rem; color: #b3411f; padding: .5rem 0; display: none; }
+    .mok { font-size: .85rem; color: var(--green-ink); padding: .5rem 0; display: none; }
+    .ea-ok {
+      padding: 2.5rem;
+      border: 1px solid var(--green);
+      border-radius: 2px;
+      display: none;
+      flex-direction: column; gap: 1rem;
+      background: rgba(184,240,110,.06);
+    }
+    .ea-ok-h {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
+      font-size: 2.5rem;
+      color: var(--ink);
+      line-height: 1;
+    }
+    .ea-ok-s { color: var(--ink-soft); line-height: 1.6; font-size: 1rem; }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       MODALS — auth, quiz
+       ═══════════════════════════════════════════════════════════════════ */
+    .mo {
+      position: fixed; inset: 0;
+      background: rgba(20,19,16,.75);
+      backdrop-filter: blur(20px);
+      z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1.5rem;
+      animation: mo-in .25s ease both;
+    }
+    .mo.off { display: none; }
+    @keyframes mo-in { from { opacity: 0; } to { opacity: 1; } }
+    .md {
+      background: var(--paper);
+      border: 1px solid var(--hairline);
+      border-radius: 2px;
+      padding: 2rem;
+      width: 100%; max-width: 480px;
+      max-height: 90vh; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 1.5rem;
+      animation: md-up .35s cubic-bezier(.25,.46,.45,.94) both;
+    }
+    @keyframes md-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+    .md-hd { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+    .md-ti {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
+      font-size: 2rem;
+      color: var(--ink); line-height: 1;
+    }
+    .md-sub { font-size: .8rem; color: var(--ink-soft); margin-top: .3rem; letter-spacing: .05em; }
+    .md-x {
+      background: none; border: none;
+      color: var(--ink-soft);
+      font-size: 1.2rem; cursor: pointer;
+      padding: 0; transition: color .3s;
+    }
+    .md-x:hover { color: var(--ink); }
+
+    /* Auth tabs */
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--hairline); }
+    .tab {
+      background: none; border: none;
+      padding: .75rem;
+      font-family: 'Inter', sans-serif;
+      font-size: .68rem; letter-spacing: .3em; text-transform: uppercase;
+      color: var(--ink-soft); font-weight: 500;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color .3s, border-color .3s;
+    }
+    .tab.on { color: var(--ink); border-bottom-color: var(--green); }
+    .mform { display: flex; flex-direction: column; gap: .7rem; }
+
+    /* Quiz UI */
+    .pbar { width: 100%; height: 1px; background: var(--hairline); }
+    .pfill { height: 100%; background: var(--ink); transition: width .5s; }
+    .qstep { display: none; flex-direction: column; gap: 1.2rem; }
+    .qstep.on { display: flex; }
+    .qlbl {
+      font-family: 'Inter', sans-serif;
+      font-size: .68rem; letter-spacing: .3em; text-transform: uppercase;
+      color: var(--ink-soft); font-weight: 500;
+    }
+    .qq {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      line-height: 1.2;
+      color: var(--ink);
+      text-wrap: balance;
+    }
+    .qopts { display: flex; flex-direction: column; gap: .4rem; }
+    .qopt {
+      background: transparent;
+      border: 1px solid var(--hairline);
+      padding: .8rem 1rem;
+      text-align: left;
+      font-family: 'Inter', sans-serif;
+      font-size: .95rem;
+      color: var(--ink);
+      cursor: pointer;
+      border-radius: 2px;
+      transition: border-color .3s, background .3s;
+    }
+    .qopt:hover { border-color: var(--ink); }
+    .qopt.sel { border-color: var(--green); background: rgba(184,240,110,.08); }
+    .qback {
+      background: none; border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: .68rem; letter-spacing: .3em; text-transform: uppercase;
+      color: var(--ink-soft); font-weight: 500;
+      cursor: pointer; padding: 0; align-self: flex-start;
+      transition: color .3s;
+    }
+    .qback:hover { color: var(--ink); }
+    .qres { display: none; flex-direction: column; gap: 1rem; }
+    .qres.on { display: flex; }
+    .qr-hd {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
+      font-size: 1.4rem;
+      color: var(--ink);
+    }
+    .qr-card {
+      padding: 1.5rem;
+      border: 1px solid var(--green);
+      border-radius: 2px;
+      background: rgba(184,240,110,.05);
+      display: flex; flex-direction: column; gap: .5rem;
+    }
+    .qr-ti {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
+      font-size: 1.6rem;
+      color: var(--ink); line-height: 1.1;
+    }
+    .qr-me { font-size: .75rem; color: var(--ink-soft); letter-spacing: .06em; }
+    .qr-re {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 24, 'wght' 300, var(--house-serif-mods);
+      font-style: italic;
+      font-size: .98rem; color: var(--ink); line-height: 1.5;
+    }
+    .slnk {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .6rem 1.1rem;
+      background: #1DB954; color: white;
+      font-family: 'Inter', sans-serif;
+      font-size: .68rem; letter-spacing: .25em; text-transform: uppercase;
+      font-weight: 500;
+      border-radius: 100px;
+      margin-top: .5rem;
+      align-self: flex-start;
+      transition: background .3s;
+      text-decoration: none;
+    }
+    .slnk:hover { background: #1ed760; }
+    .qrst {
+      background: none; border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: .68rem; letter-spacing: .3em; text-transform: uppercase;
+      color: var(--ink-soft); font-weight: 500;
+      cursor: pointer; padding: 0; align-self: flex-start;
+      transition: color .3s;
+    }
+    .qrst:hover { color: var(--ink); }
+
+    /* ═══════════════════════════════════════════════════════════════════
+       FOOTER — quiet; no city
+       ═══════════════════════════════════════════════════════════════════ */
+    .site-footer {
+      background: var(--paper);
+      padding: clamp(2.5rem, 5vw, 4rem) clamp(1.5rem, 4vw, 3.5rem);
+      border-top: 1px solid var(--hairline);
+      display: flex; flex-wrap: wrap;
+      justify-content: space-between; align-items: baseline;
+      gap: 1.5rem 2rem;
+    }
+    .footer-brand {
+      font-family: var(--house-serif);
+      font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
+      font-style: italic; font-weight: 300;
+      font-size: clamp(1.4rem, 2.5vw, 2rem);
+      color: var(--ink); line-height: 1;
+    }
+    .footer-links {
+      display: flex; flex-wrap: wrap;
+      gap: 1.4rem;
+      font-family: 'Inter', sans-serif;
+      font-size: .68rem; letter-spacing: .25em; text-transform: uppercase;
+      color: var(--ink-soft); font-weight: 500;
+    }
+    .footer-links a { color: currentColor; transition: color .3s; }
+    .footer-links a:hover { color: var(--ink); }
+
     /* Reduced motion → static SVG poster is the display, canvas never lights up. */
     @media (prefers-reduced-motion: reduce) {
       .hero-scroll .line { animation: none; opacity: .6; }
@@ -478,6 +1055,8 @@
   <div id="loading-cover"></div>
 
   <main>
+    <!-- ═══ HOME PAGE (hero + house + labs) ═══════════════════════════ -->
+    <div class="page on" id="page-home">
     <section class="hero">
       <div class="hero-stage">
         <svg class="hero-svg" id="hero-svg" viewBox="-3.4 -3.4 6.8 6.8" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
@@ -531,7 +1110,283 @@
         </div>
       </div>
     </section>
+    </div><!-- /page-home -->
+
+    <!-- ═══ RECORD LABEL PAGE ═══════════════════════════════════════════ -->
+    <div class="page" id="page-record-label">
+      <nav class="pillar-nav">
+        <a href="#" class="back">Melomaniac Studios</a>
+        <a href="#early-access">Early Access</a>
+      </nav>
+      <section class="pillar-hero">
+        <div class="pillar-hero-inner">
+          <div class="pillar-hero-tag"><span>Record Label · Melomaniac Studios</span></div>
+          <h1 class="pillar-hero-title">Independent. Artist-first.</h1>
+          <p class="pillar-hero-lead">Home to Armin Saber. Released, mixed, and mastered in-house.</p>
+        </div>
+      </section>
+      <div class="pillar-body">
+        <div class="pillar-section">
+          <div class="pillar-section-label"><span>Artist</span></div>
+          <p class="pillar-text"><strong>Armin Saber</strong> is an Iranian-Canadian producer working across experimental electronic and Farsi soul. The label's founding artist and the catalog behind the Frequency song-match engine.</p>
+          <div class="pill-row" style="margin-top:1.2rem">
+            <a class="pill" href="https://open.spotify.com/artist/5cI5jeUkUKcKSvMs5DNKno" target="_blank" rel="noopener">Spotify</a>
+            <a class="pill" href="https://music.apple.com/ca/artist/armin-saber/1690610771" target="_blank" rel="noopener">Apple Music</a>
+            <a class="pill" href="https://www.youtube.com/@armiiinsaber" target="_blank" rel="noopener">YouTube</a>
+            <a class="pill" href="https://soundcloud.com/arminsaber" target="_blank" rel="noopener">SoundCloud</a>
+          </div>
+        </div>
+        <div class="pillar-section">
+          <div class="pillar-section-label"><span>Find your song</span></div>
+          <p class="pillar-text">Four questions match you to a track from the catalog.</p>
+          <div class="pill-row" style="margin-top:1.2rem">
+            <button class="pill fill" onclick="openQuiz()">Discover your song →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SOUND DESIGN PAGE ═══════════════════════════════════════════ -->
+    <div class="page" id="page-sound-design">
+      <nav class="pillar-nav">
+        <a href="#" class="back">Melomaniac Studios</a>
+        <a href="#early-access">Early Access</a>
+      </nav>
+      <section class="pillar-hero">
+        <div class="pillar-hero-inner">
+          <div class="pillar-hero-tag"><span>Sound Design · Melomaniac Studios</span></div>
+          <h1 class="pillar-hero-title">Sonic identity for brands and spaces.</h1>
+          <p class="pillar-hero-lead">Zero to one hundred, in-house.</p>
+        </div>
+      </section>
+      <div class="pillar-body">
+        <div class="pillar-section">
+          <div class="pillar-section-label"><span>What we make</span></div>
+          <p class="pillar-text">Melomaniac Studios' sound design atelier builds sonic identity for brands, live experience audio, spatial installations, fashion show music direction, and cultural events. Every project starts blank; every project ships production-ready.</p>
+        </div>
+        <div class="pillar-section">
+          <div class="pillar-section-label"><span>Capabilities</span></div>
+          <ul class="pillar-list">
+            <li>Sonic identity for brands</li>
+            <li>Live experience audio direction</li>
+            <li>Spatial sound installations</li>
+            <li>Fashion show music direction</li>
+            <li>Cultural events</li>
+          </ul>
+        </div>
+        <div class="pillar-section">
+          <div class="pillar-section-label"><span>Selected clients</span></div>
+          <div class="brand-row">
+            <span class="brand-chip">Porsche</span>
+            <span class="brand-chip">Leyla Kashani</span>
+            <span class="brand-chip">Haash &amp; Co.</span>
+          </div>
+        </div>
+        <div class="pillar-section">
+          <div class="pillar-section-label"><span>Get in touch</span></div>
+          <p class="pillar-text">Studio inquiries: <a href="mailto:studio@melomaniacstudios.com">studio@melomaniacstudios.com</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MELOMANIA PAGE (dark inversion) ═════════════════════════════ -->
+    <div class="page" id="page-melomania">
+      <nav class="pillar-nav">
+        <a href="#" class="back">Melomaniac Studios</a>
+        <a href="#early-access">Early Access</a>
+      </nav>
+      <section class="pillar-hero">
+        <div class="pillar-hero-inner">
+          <div class="pillar-hero-tag"><span>Melomania · Melomaniac Studios</span></div>
+          <h1 class="pillar-hero-title">Original music, composed per night.</h1>
+          <p class="pillar-hero-lead">A party concept rooted in originality. Invite only.</p>
+        </div>
+      </section>
+      <div class="pillar-body">
+        <div class="pillar-section">
+          <div class="pillar-section-label"><span>The concept</span></div>
+          <p class="pillar-text">Armin Saber performs full original sets composed specifically for each show. Invite-only or through Melomaniac Studios members.</p>
+        </div>
+        <div class="pillar-section">
+          <div class="pillar-section-label"><span>Next event</span></div>
+          <div class="event-card">
+            <div class="event-card-label">Save the date</div>
+            <div class="event-card-date">May 2, 2026</div>
+            <div class="pill-row" style="margin-top:.8rem">
+              <a class="pill fill" href="https://ra.co/events/2425993" target="_blank" rel="noopener">Get Access →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MANIFOLD PAGE (WebGL visualizer) ════════════════════════════ -->
+    <div class="page" id="page-manifold">
+      <canvas id="mfc"></canvas>
+      <div class="mf-topbar">
+        <a href="#" class="mf-back">← Back</a>
+        <div class="mf-lbl">Manifold</div>
+      </div>
+      <div id="mf-ui">
+        <div class="mf-title">Manifold</div>
+        <div class="mf-sub">Your music, made visible</div>
+        <label class="mf-upl" for="mff">
+          <span class="mf-upl-ico">♪</span>
+          <span>Upload audio</span>
+        </label>
+        <div id="mf-pw"><div id="mf-pb"></div></div>
+        <div id="mf-st"></div>
+      </div>
+      <input type="file" id="mff" accept=".mp3,.wav,.m4a,.aac,.ogg,.flac" style="display:none">
+      <div id="mf-ctrl">
+        <div class="mf-trk" id="mf-trackname"></div>
+        <div class="mf-btns">
+          <button id="mf-pp" class="mf-btn" onclick="mfStop()">⏸ Pause</button>
+          <button class="mf-btn" onclick="mfNew()">↑ Load new</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ EARLY ACCESS PAGE ═══════════════════════════════════════════ -->
+    <div class="page" id="page-early-access">
+      <nav class="pillar-nav">
+        <a href="#" class="back">Melomaniac Studios</a>
+      </nav>
+      <div class="ea-page">
+        <div class="ea-tag"><span>Melomaniac Labs · Early Access</span></div>
+        <h1 class="ea-h">Be <em>first.</em></h1>
+        <p class="ea-story">
+          Melomaniac Labs builds creative technology for music — tools that make sound visual, personal, and experiential.
+          <br><br>
+          <strong>Manifold</strong> turns any audio into a reactive 3D sculpture. <strong>Frequency</strong> finds your song in four questions. <strong>Noted</strong> lets you talk to your mix, hands-free. These are the first three.
+          <br><br>
+          More are being built right now. Leave your name and email — we'll reach out when the next tool is ready.
+        </p>
+        <div id="ea-form-wrap">
+          <div class="ea-form">
+            <div class="ea-row">
+              <input class="mi" type="text" id="ea-fn" placeholder="First name" maxlength="40">
+              <input class="mi" type="text" id="ea-ln" placeholder="Last name" maxlength="40">
+            </div>
+            <input class="mi" type="email" id="ea-em" placeholder="Email address">
+            <div id="ea-err" class="ea-err"></div>
+            <button class="msub" id="ea-btn" onclick="joinWaitlist()">Get Early Access →</button>
+          </div>
+        </div>
+        <div class="ea-ok" id="ea-ok">
+          <div class="ea-ok-h">You're in.</div>
+          <div class="ea-ok-s">We'll reach out when the next tool is ready. No spam — just early access.<br><br>Check your <strong style="color:var(--ink)">Promotions tab</strong> if you use Gmail.</div>
+        </div>
+      </div>
+    </div>
   </main>
+
+  <!-- ═══ FOOTER ═══ quiet; wordmark, contact, social; no city. ═══════ -->
+  <footer class="site-footer">
+    <div class="footer-brand">Melomaniac Studios</div>
+    <div class="footer-links">
+      <a href="mailto:studio@melomaniacstudios.com">Contact</a>
+      <a href="https://instagram.com/melomaniacstudios" target="_blank" rel="noopener">Instagram</a>
+      <a href="#early-access">Early Access</a>
+    </div>
+  </footer>
+
+  <!-- ═══ MODALS ═══ Frequency quiz + auth ═════════════════════════════ -->
+  <div class="mo off" id="quiz-mo" onclick="if(event.target===this)closeQuiz()">
+    <div class="md" style="max-width:520px">
+      <div class="md-hd">
+        <div>
+          <div class="md-ti">Frequency</div>
+          <div class="md-sub">Find your song · 15 tracks · 4 questions</div>
+        </div>
+        <button class="md-x" onclick="closeQuiz()" aria-label="Close">✕</button>
+      </div>
+      <div class="pbar"><div class="pfill" id="qpg"></div></div>
+      <div class="qstep on" id="qs1">
+        <div class="qlbl">Question 1 of 4</div>
+        <div class="qq">How's your energy right now?</div>
+        <div class="qopts">
+          <button class="qopt" onclick="qa(event,1,'l')">Low — quiet, introspective</button>
+          <button class="qopt" onclick="qa(event,1,'m')">Medium — steady, in the zone</button>
+          <button class="qopt" onclick="qa(event,1,'h')">High — ready to move</button>
+        </div>
+      </div>
+      <div class="qstep" id="qs2">
+        <button class="qback" onclick="qBack(2)">← Back</button>
+        <div class="qlbl">Question 2 of 4</div>
+        <div class="qq">What are you feeling?</div>
+        <div class="qopts">
+          <button class="qopt" onclick="qa(event,2,'ns')">Nostalgic or melancholic</button>
+          <button class="qopt" onclick="qa(event,2,'ha')">Happy, good vibes</button>
+          <button class="qopt" onclick="qa(event,2,'cr')">Creative, floaty</button>
+          <button class="qopt" onclick="qa(event,2,'my')">Curious, thinking deeply</button>
+          <button class="qopt" onclick="qa(event,2,'ch')">Calm, at ease</button>
+        </div>
+      </div>
+      <div class="qstep" id="qs3">
+        <button class="qback" onclick="qBack(3)">← Back</button>
+        <div class="qlbl">Question 3 of 4</div>
+        <div class="qq">What are you about to do?</div>
+        <div class="qopts">
+          <button class="qopt" onclick="qa(event,3,'dn')">Dance or go out</button>
+          <button class="qopt" onclick="qa(event,3,'tk')">Reflect or journal</button>
+          <button class="qopt" onclick="qa(event,3,'fc')">Work or deep focus</button>
+          <button class="qopt" onclick="qa(event,3,'rx')">Relax, do nothing</button>
+          <button class="qopt" onclick="qa(event,3,'gv')">Just vibe</button>
+        </div>
+      </div>
+      <div class="qstep" id="qs4">
+        <button class="qback" onclick="qBack(4)">← Back</button>
+        <div class="qlbl">Question 4 of 4</div>
+        <div class="qq">Vocals or no vocals?</div>
+        <div class="qopts">
+          <button class="qopt" onclick="qa(event,4,'vc')">Vocals — something to feel</button>
+          <button class="qopt" onclick="qa(event,4,'inst')">Instrumental — just music</button>
+          <button class="qopt" onclick="qa(event,4,'ei')">Either works</button>
+        </div>
+      </div>
+      <div class="qres" id="qres">
+        <div class="qr-hd">Your frequency.</div>
+        <div class="qr-card">
+          <div class="qr-ti" id="qrt"></div>
+          <div class="qr-me" id="qrm"></div>
+          <div class="qr-re" id="qrr"></div>
+          <a class="slnk" id="qrl" href="#" target="_blank" rel="noopener">Listen on Spotify →</a>
+        </div>
+        <button class="qrst" onclick="qReset()">↺ Try again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mo off" id="auth-mo" onclick="if(event.target===this)closeAuth()">
+    <div class="md">
+      <div class="md-hd">
+        <div>
+          <div class="md-ti">Join</div>
+          <div class="md-sub">Create your Melomaniac account</div>
+        </div>
+        <button class="md-x" onclick="closeAuth()" aria-label="Close">✕</button>
+      </div>
+      <div class="tabs">
+        <button class="tab on" id="ts" onclick="switchTab('signup')">Sign up</button>
+        <button class="tab" id="tl" onclick="switchTab('login')">Log in</button>
+      </div>
+      <div id="fs" class="mform">
+        <input class="mi" type="text" id="su" placeholder="Username" maxlength="30">
+        <input class="mi" type="email" id="se" placeholder="Email">
+        <input class="mi" type="password" id="sp" placeholder="Password (min 6 chars)">
+        <div id="ser" class="merr"></div>
+        <div id="sok" class="mok"></div>
+        <button class="msub" id="snb" onclick="handleSignup()">Create account</button>
+      </div>
+      <div id="fl" class="mform" style="display:none">
+        <input class="mi" type="email" id="le" placeholder="Email">
+        <input class="mi" type="password" id="lp" placeholder="Password">
+        <div id="ler" class="merr"></div>
+        <button class="msub" id="lnb" onclick="handleLogin()">Log in</button>
+      </div>
+    </div>
+  </div>
 
   <!--
     House index + Labs featured — data-driven build.
@@ -600,6 +1455,391 @@
       }).join('');
     }
   })();
+  </script>
+
+  <!--
+    ═══ SITE JS ═══════════════════════════════════════════════════════
+    Router (hash-based, adapted from _reference/) + Frequency quiz +
+    Supabase auth + waitlist submit + Manifold WebGL init (dynamic
+    import of the same vendored three.js the hero and Labs use).
+    ═══════════════════════════════════════════════════════════════════
+  -->
+  <script>
+  // ─── Router ─────────────────────────────────────────────────────────
+  (function(){
+    const pageMap = {
+      '': 'page-home',
+      'record-label': 'page-record-label',
+      'sound-design': 'page-sound-design',
+      'melomania': 'page-melomania',
+      'manifold': 'page-manifold',
+      'early-access': 'page-early-access',
+    };
+    const titles = {
+      '': 'Melomaniac Studios — A house for sound',
+      'record-label': 'Record Label — Melomaniac Studios',
+      'sound-design': 'Sound Design — Melomaniac Studios',
+      'melomania': 'Melomania — Melomaniac Studios',
+      'manifold': 'Manifold — Melomaniac Labs',
+      'early-access': 'Early Access — Melomaniac Labs',
+    };
+    function route(){
+      const hash = location.hash.replace('#','').trim();
+      if (hash === 'frequency') {
+        history.replaceState(null, '', '#');
+        window.openQuiz && window.openQuiz();
+        return;
+      }
+      const pageId = pageMap[hash] || 'page-home';
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+      const pg = document.getElementById(pageId);
+      if (pg) pg.classList.add('on');
+      document.title = titles[hash] || 'Melomaniac Studios';
+      window.scrollTo(0, 0);
+      if (hash === 'manifold' && window.__initManifold) window.__initManifold();
+      // The loading cover exists to guard hero first-paint. On direct URL
+      // loads to a non-home page, hero isn't the display — reveal immediately.
+      if (pageId !== 'page-home') {
+        const cover = document.getElementById('loading-cover');
+        if (cover) cover.style.display = 'none';
+      }
+    }
+    window.addEventListener('hashchange', route);
+    setTimeout(route, 0);
+  })();
+
+  // ─── Supabase ───────────────────────────────────────────────────────
+  const SB_URL = "https://kubzwqhctflmizorjgaf.supabase.co";
+  const SB_KEY = "sb_publishable_JrdbRyJm9iv1_-G6knkLdw_gTPpVISc";
+  let sb = null;
+  try {
+    if (typeof supabase !== 'undefined') sb = supabase.createClient(SB_URL, SB_KEY);
+  } catch (e) { console.warn('[supabase] init failed', e); }
+  const ge = (id) => document.getElementById(id);
+
+  // ─── Songs catalog (drives Frequency quiz result match) ─────────────
+  const songs = [
+    {id:"oh_friend",title:"oh friend…",meta:"Farsi · Experimental Electronic · Bittersweet",url:"https://open.spotify.com/track/3OSxWm7FffBFPLml3CCCTv",reason:"Layered, bittersweet.",e:["l","m"],m:["ns","cr"],a:["tk","rx","gv"],v:true},
+    {id:"may",title:"MAY JUST TAKE YOUR BREATH AWAY",meta:"English · Bass Music · Uplifting",url:"https://open.spotify.com/track/3Gb8e0SNFdzvKOTMQodpH0",reason:"Euphoric, full-body.",e:["h"],m:["ha"],a:["dn","gv"],v:true},
+    {id:"life",title:"life",meta:"English · Minimal Electronic · Flow",url:"https://open.spotify.com/track/19DoSwaM6fjhmkKZ99T8aP",reason:"Focus state.",e:["m"],m:["cr"],a:["fc","tk"],v:true},
+    {id:"afterz",title:"afterz",meta:"Instrumental · Bass Guitar & Sax · Chill",url:"https://open.spotify.com/track/5y9PQqe3myV0VPSh6gAvAk",reason:"Minimal, warm.",e:["l"],m:["ch"],a:["rx"],v:false},
+    {id:"kmbz",title:"KMBZ (heartless)",meta:"Farsi · Afro House · Good Vibes",url:"https://open.spotify.com/track/7lZdWMCxzLyMom3DoEV3wP",reason:"Dance with soul.",e:["h"],m:["ha"],a:["dn","gv"],v:true},
+    {id:"ilyh",title:"ILYH",meta:"English & French · Groovy · Mysterious",url:"https://open.spotify.com/track/6WB2zNSarYy0gIoII6Uy7t",reason:"Groovy, playful.",e:["m"],m:["my","ha"],a:["gv","tk"],v:true},
+    {id:"sheep",title:"SHEEP",meta:"Instrumental · Experimental · Mysterious",url:"https://open.spotify.com/track/4BAKOSRH4sxz6MDV7hG9cN",reason:"Sonic journey.",e:["l","m"],m:["my","cr"],a:["fc","tk"],v:false},
+    {id:"thirteen",title:"1313",meta:"Instrumental · Groovy Electronic · Joyful",url:"https://open.spotify.com/track/0lXtpHmdy1AvSifVTh2Hu5",reason:"Colorful, energetic.",e:["h"],m:["ha","cr"],a:["dn","gv"],v:false},
+    {id:"noor",title:"NOOR",meta:"Instrumental · Chill & Progressive · Feel-Good",url:"https://open.spotify.com/track/4lpweUep7LmnjzivZah3mA",reason:"Relaxed, gentle movement.",e:["l","m"],m:["ch","ha"],a:["rx","gv"],v:false},
+    {id:"azar",title:"AZAR (My Town)",meta:"Farsi · Energetic Electronic · Bittersweet",url:"https://open.spotify.com/track/62tXcvqaNFvhPxbxNFUOQW",reason:"Hits hard from bar one.",e:["h"],m:["ns","ha"],a:["dn","gv"],v:true},
+    {id:"shhla",title:"SHHLA (Without U)",meta:"Farsi · Experimental Groove · Mysterious",url:"https://open.spotify.com/track/73E5gS27DI47GsKLYCQdwr",reason:"Groovy, full of surprises.",e:["m"],m:["my"],a:["gv","tk"],v:true},
+    {id:"frydn",title:"FRYDN (Why?)",meta:"Farsi · Progressive Electronic · Nostalgic",url:"https://open.spotify.com/track/7FoI2iXr9CHXVUzQ0SFzXt",reason:"Deeply nostalgic.",e:["l","m"],m:["ns"],a:["rx","gv","tk"],v:true},
+    {id:"ftkhr",title:"FTKHR (Not Easy)",meta:"Farsi · Drum & Bass · Nostalgic & Energetic",url:"https://open.spotify.com/track/32s8ePJkpENaGxNrjulc92",reason:"Melancholic, bursting.",e:["m","h"],m:["ns"],a:["fc","tk"],v:true},
+    {id:"ruby",title:"Ruby",meta:"Instrumental · Dark Minimal · Focus",url:"https://open.spotify.com/track/3EukojNISVjza3sPwIPWwl",reason:"Dark, hypnotic.",e:["l","m"],m:["my"],a:["fc"],v:false},
+    {id:"hrb",title:"HRB",meta:"Instrumental · Funky Dark Electronic · Mysterious",url:"https://open.spotify.com/track/6SeMxHtQmzGyaqv1zyyEwd",reason:"Funky, dark.",e:["m"],m:["my","cr"],a:["gv","fc"],v:false}
+  ];
+
+  // ─── Frequency quiz ─────────────────────────────────────────────────
+  const qA = {};
+  window.openQuiz = () => { ge('quiz-mo').classList.remove('off'); qReset(); };
+  window.closeQuiz = () => { ge('quiz-mo').classList.add('off'); };
+  window.qReset = qReset;
+  function qReset(){
+    Object.keys(qA).forEach(k => delete qA[k]);
+    document.querySelectorAll('#quiz-mo .qopt').forEach(b => b.classList.remove('sel'));
+    ge('qpg').style.width = '0%';
+    const r = ge('qres'); r.classList.remove('on'); r.style.display = 'none';
+    qStep(1);
+  }
+  function qStep(n){
+    document.querySelectorAll('#quiz-mo .qstep').forEach(s => s.classList.remove('on'));
+    const el = ge('qs'+n); if (el) el.classList.add('on');
+    ge('qpg').style.width = ((n-1)/4*100)+'%';
+  }
+  window.qBack = (s) => { delete qA[s-1]; qStep(s-1); };
+  window.qa = (ev, s, v) => {
+    qA[s] = v;
+    document.querySelectorAll('#qs'+s+' .qopt').forEach(b => b.classList.remove('sel'));
+    ev.target.classList.add('sel');
+    setTimeout(() => { if (s<4) qStep(s+1); else qResult(); }, 300);
+  };
+  function qScore(song){
+    let s = 0;
+    if (song.e.includes(qA[1])) s+=3;
+    if (song.m.includes(qA[2])) s+=3;
+    if (song.a.includes(qA[3])) s+=2;
+    if (qA[4]==='vc' && song.v) s+=2;
+    if (qA[4]==='inst' && !song.v) s+=2;
+    if (qA[4]==='ei') s+=1;
+    return s;
+  }
+  function qResult(){
+    ge('qpg').style.width = '100%';
+    document.querySelectorAll('#quiz-mo .qstep').forEach(s => s.classList.remove('on'));
+    let best = songs[0], bs = -1;
+    songs.forEach(s => { const sc = qScore(s); if (sc > bs){ bs = sc; best = s; }});
+    ge('qrt').textContent = best.title;
+    ge('qrm').textContent = best.meta;
+    ge('qrr').textContent = best.reason;
+    ge('qrl').href = best.url;
+    const r = ge('qres'); r.style.display = 'flex'; r.classList.add('on');
+  }
+
+  // ─── Auth (Supabase) ────────────────────────────────────────────────
+  window.openAuth = (t='signup') => { if (!sb) { alert('Auth service unavailable.'); return; } ge('auth-mo').classList.remove('off'); window.switchTab(t); };
+  window.closeAuth = () => { ge('auth-mo').classList.add('off'); clearErrs(); };
+  window.switchTab = (t) => {
+    ge('ts').classList.toggle('on', t==='signup');
+    ge('tl').classList.toggle('on', t==='login');
+    ge('fs').style.display = t==='signup' ? 'flex' : 'none';
+    ge('fl').style.display = t==='login' ? 'flex' : 'none';
+    clearErrs();
+  };
+  function clearErrs(){
+    ['ser','sok','ler'].forEach(id => { const e = ge(id); if (e) { e.style.display = 'none'; e.textContent = ''; }});
+  }
+  window.handleSignup = async () => {
+    if (!sb) return;
+    const u = ge('su').value.trim(), e = ge('se').value.trim(), p = ge('sp').value;
+    const btn = ge('snb'), err = ge('ser'), ok = ge('sok');
+    if (!u || !e || !p) { err.textContent = 'All fields required.'; err.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'Creating…';
+    try {
+      const { data, error } = await sb.auth.signUp({ email: e, password: p, options: { data: { username: u }}});
+      if (error) { err.textContent = error.message; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Create account'; return; }
+      if (data.user) await sb.from('profiles').upsert({ id: data.user.id, username: u, email: e, agent_name: 'ECHO', song_history: [], taste_t: [], guilty_t: [] });
+      ok.textContent = '✓ Email sent. Check your inbox.'; ok.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Create account';
+      setTimeout(window.closeAuth, 1800);
+    } catch (e) {
+      err.textContent = 'Error — try again.'; err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Create account';
+    }
+  };
+  window.handleLogin = async () => {
+    if (!sb) return;
+    const e = ge('le').value.trim(), p = ge('lp').value;
+    const btn = ge('lnb'), err = ge('ler');
+    btn.disabled = true; btn.textContent = 'Logging in…';
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email: e, password: p });
+      if (error) { err.textContent = error.message; err.style.display = 'block'; btn.disabled = false; btn.textContent = 'Log in'; return; }
+      btn.disabled = false; btn.textContent = 'Log in'; window.closeAuth();
+    } catch (e) {
+      err.textContent = 'Error — try again.'; err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Log in';
+    }
+  };
+
+  // ─── Waitlist ───────────────────────────────────────────────────────
+  window.joinWaitlist = async () => {
+    const fn = ge('ea-fn').value.trim(), ln = ge('ea-ln').value.trim(), em = ge('ea-em').value.trim();
+    const err = ge('ea-err'), btn = ge('ea-btn');
+    err.style.display = 'none';
+    if (!fn || !ln || !em) { err.textContent = 'All fields required.'; err.style.display = 'block'; return; }
+    if (!em.includes('@')) { err.textContent = 'Please enter a valid email.'; err.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const res = await fetch(SB_URL+'/rest/v1/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_KEY, 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ first_name: fn, last_name: ln, email: em, source: 'labs-early-access' })
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        if (res.status === 409 || d.code === '23505') err.textContent = 'That email is already on the list.';
+        else err.textContent = 'Something went wrong ('+res.status+') — try again.';
+        err.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Get Early Access →';
+        return;
+      }
+      fetch(SB_URL+'/functions/v1/clever-function', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer '+SB_KEY },
+        body: JSON.stringify({ email: em, firstName: fn })
+      }).catch(() => {});
+      ge('ea-form-wrap').style.display = 'none';
+      const ok = ge('ea-ok'); ok.style.display = 'flex';
+    } catch (e) {
+      err.textContent = 'Network error — check your connection.'; err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Get Early Access →';
+    }
+  };
+
+  // ─── Manifold WebGL (port from _reference/, styled with house cut) ─
+  let mfInited = false;
+  window.__initManifold = () => {
+    if (mfInited) return;
+    import('./vendor/three.module.min.js').then((THREE) => {
+      window.THREE = THREE;
+      _initMF(THREE);
+    }).catch(err => { console.warn('[manifold] three.js failed to load', err); });
+  };
+  function _initMF(THREE){
+    if (mfInited) return;
+    mfInited = true;
+    const cv = ge('mfc');
+    if (!cv) return;
+    const ren = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+    ren.setPixelRatio(Math.min(devicePixelRatio, 2));
+    ren.setSize(innerWidth, innerHeight);
+    ren.setClearColor(0x030408, 1);
+    const sc = new THREE.Scene();
+    const cam = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 500);
+    cam.position.z = innerWidth < 600 ? 6 : 4;
+    const clk = new THREE.Clock();
+
+    sc.add(new THREE.AmbientLight(0x050a02, 1));
+    const ll = new THREE.PointLight(0xb8f06e, 3, 20); ll.position.set(3,3,4); sc.add(ll);
+    const bl = new THREE.PointLight(0x1122ff, 2, 15); bl.position.set(-4,-1,3); sc.add(bl);
+    const pl = new THREE.PointLight(0xff44aa, 1.5, 12); pl.position.set(0,-3,-2); sc.add(pl);
+
+    const SR = innerWidth < 600 ? 0.85 : 1.1;
+    const g = new THREE.SphereGeometry(SR, 64, 64);
+    const op = Float32Array.from(g.attributes.position.array);
+    const vc = g.attributes.position.count;
+    const sM = new THREE.MeshStandardMaterial({ color: 0x0a1205, emissive: 0x0d2004, emissiveIntensity: 1, metalness: 0.3, roughness: 0.5, side: THREE.DoubleSide, transparent: true, opacity: 0.92 });
+    const sph = new THREE.Mesh(g, sM); sc.add(sph);
+    const wG = g.clone();
+    const wM = new THREE.MeshBasicMaterial({ color: 0xb8f06e, wireframe: true, transparent: true, opacity: 0.14 });
+    sc.add(new THREE.Mesh(wG, wM));
+
+    const mkR = (r, t, c, o) => new THREE.Mesh(new THREE.TorusGeometry(r, t, 8, 120), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o }));
+    const RS = SR + 0.75;
+    const r1 = mkR(RS, 0.007, 0xb8f06e, 0.22); r1.rotation.x = Math.PI/2; sc.add(r1);
+    const r2 = mkR(RS+0.3, 0.005, 0x4488ff, 0.13); r2.rotation.x = Math.PI/3; sc.add(r2);
+    const r3 = mkR(RS-0.2, 0.005, 0xff55bb, 0.1); r3.rotation.z = Math.PI/4; sc.add(r3);
+
+    let ac, an, fd, td, sn, live = 0, drag = 0, px = 0, py = 0, tx = 0, ty = 0, cx = 0, cy = 0, bs = 0, ms = 0, hs = 0, en = 0;
+
+    cv.addEventListener('mousedown', e => { drag = 1; px = e.clientX; py = e.clientY; });
+    addEventListener('mouseup', () => drag = 0);
+    addEventListener('mousemove', e => { if (!drag) return; ty += (e.clientX - px)*0.007; tx += (e.clientY - py)*0.007; px = e.clientX; py = e.clientY; });
+    cv.addEventListener('touchstart', e => { if (e.touches.length === 1) { drag = 1; px = e.touches[0].clientX; py = e.touches[0].clientY; }}, { passive: true });
+    cv.addEventListener('touchend', () => drag = 0, { passive: true });
+    cv.addEventListener('touchmove', e => { if (!drag || e.touches.length !== 1) return; ty += (e.touches[0].clientX - px)*0.007; tx += (e.touches[0].clientY - py)*0.007; px = e.touches[0].clientX; py = e.touches[0].clientY; }, { passive: true });
+    cv.addEventListener('wheel', e => { cam.position.z = Math.max(1.5, Math.min(10, cam.position.z + e.deltaY*0.005)); }, { passive: true });
+    addEventListener('resize', () => {
+      cam.aspect = innerWidth/innerHeight;
+      cam.updateProjectionMatrix();
+      ren.setSize(innerWidth, innerHeight);
+    });
+
+    function avB(lo, hi){ if (!fd) return 0; let s = 0; for (let i = lo; i < hi; i++) s += fd[i]; return s/(hi-lo)/255; }
+
+    function tick(){
+      requestAnimationFrame(tick);
+      const mp = document.getElementById('page-manifold');
+      if (mp && !mp.classList.contains('on')) return;
+      const t = clk.getElapsedTime();
+      if (live && an && ac && ac.state === 'running') {
+        an.getByteFrequencyData(fd);
+        try { if (td) an.getByteTimeDomainData(td); } catch (e) {}
+        const _bs = avB(3, 9), _ms = avB(40, 130), _hs = avB(130, 350), _en = avB(1, 350);
+        const sp = 0.2;
+        bs = bs*(1-sp) + _bs*sp;
+        ms = ms*(1-sp) + _ms*sp;
+        hs = hs*(1-sp) + _hs*sp;
+        en = en*0.88 + _en*0.04;
+        ll.intensity = 2.5 + bs*9;
+        bl.intensity = 1.5 + hs*5;
+        pl.intensity = 1 + ms*4;
+        sM.emissiveIntensity = 0.5 + en*1.4;
+        wM.opacity = 0.1 + hs*0.55;
+      } else {
+        bs = (Math.sin(t*0.6)+1)*0.06;
+        ms = (Math.sin(t*1.2)+1)*0.04;
+        hs = (Math.sin(t*2.1)+1)*0.02;
+        sM.emissiveIntensity = 0.6 + Math.sin(t*0.5)*0.2;
+      }
+      const pos = sph.geometry.attributes.position;
+      for (let i = 0; i < vc; i++) {
+        const ix = i*3, ox = op[ix], oy = op[ix+1], oz = op[ix+2];
+        const l = Math.sqrt(ox*ox + oy*oy + oz*oz) || 1;
+        const nx = ox/l, ny = oy/l, nz = oz/l;
+        const d = bs*0.95*(1 + 0.5*Math.sin(nx*4 + t*1.8)) + ms*0.5*Math.sin(ny*8 + nz*6 + t*3.1) + hs*0.28*Math.sin(nx*18 + ny*14 + t*6.5);
+        pos.setXYZ(i, ox + nx*d, oy + ny*d, oz + nz*d);
+      }
+      pos.needsUpdate = true;
+      sph.geometry.computeVertexNormals();
+      wG.attributes.position.array.set(sph.geometry.attributes.position.array);
+      wG.attributes.position.needsUpdate = true;
+      if (!drag) ty += 0.004;
+      tx += (Math.sin(t*0.15)*0.12 - tx)*0.03;
+      cx += (tx - cx)*0.07; cy += (ty - cy)*0.07;
+      sph.rotation.x = cx; sph.rotation.y = cy;
+      r1.rotation.z = t*0.18 + bs*0.5;
+      r1.rotation.x = Math.PI/2 + Math.sin(t*0.3)*0.2 + ms*0.3;
+      r1.scale.setScalar(1 + bs*0.3);
+      r2.rotation.y = t*0.22;
+      r2.rotation.x = Math.PI/3 + hs*0.4;
+      r2.scale.setScalar(1 + ms*0.22);
+      r3.rotation.z = -t*0.14;
+      r3.rotation.y = t*0.09;
+      r3.scale.setScalar(1 + hs*0.15);
+      ren.render(sc, cam);
+    }
+    tick();
+
+    function mkAC(){
+      if (ac) return;
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      an = ac.createAnalyser();
+      an.fftSize = 2048;
+      an.smoothingTimeConstant = 0.72;
+      an.minDecibels = -90;
+      an.maxDecibels = -10;
+      fd = new Uint8Array(an.frequencyBinCount);
+      td = new Uint8Array(an.fftSize);
+      an.connect(ac.destination);
+    }
+    window.mfStop = () => {
+      if (!sn) return;
+      const btn = ge('mf-pp');
+      if (live) { ac.suspend(); live = 0; btn.textContent = '▶ Resume'; }
+      else { ac.resume(); live = 1; btn.textContent = '⏸ Pause'; }
+    };
+    window.mfNew = () => {
+      if (sn) { try { sn.stop(); } catch (x) {} sn.disconnect(); }
+      live = 0;
+      ge('mf-pp').textContent = '⏸ Pause';
+      ge('mff').value = '';
+      ge('mff').click();
+    };
+    const mff = ge('mff');
+    if (mff) mff.addEventListener('change', function(){
+      const f = this.files[0]; if (!f) return;
+      mkAC(); ac.resume();
+      const pw = ge('mf-pw'), pb = ge('mf-pb'), st = ge('mf-st');
+      pw.style.display = 'block'; pb.style.width = '0';
+      st.textContent = 'Reading file…';
+      const rd = new FileReader();
+      rd.onprogress = e => { if (e.lengthComputable) pb.style.width = (e.loaded/e.total*62)+'%'; };
+      rd.onload = e => {
+        pb.style.width = '75%'; st.textContent = 'Decoding audio…';
+        ac.decodeAudioData(e.target.result.slice(0), buf => {
+          pb.style.width = '100%';
+          if (sn) { try { sn.stop(); } catch (x) {} sn.disconnect(); }
+          sn = ac.createBufferSource();
+          sn.buffer = buf; sn.loop = true;
+          sn.connect(an);
+          const nm = f.name.replace(/\.[^/.]+$/, '').slice(0, 26).toUpperCase();
+          ac.resume().then(() => {
+            sn.start(0); live = 1;
+            ge('mf-pp').textContent = '⏸ Pause';
+            ge('mf-trackname').textContent = nm;
+            ge('mf-ctrl').style.display = 'flex';
+            const mfUI = ge('mf-ui');
+            mfUI.style.opacity = '0';
+            setTimeout(() => mfUI.style.display = 'none', 900);
+            setTimeout(() => pw.style.display = 'none', 500);
+          }).catch(() => { sn.start(0); live = 1; });
+        }, () => {
+          st.textContent = 'Decode failed — try MP3 or WAV';
+          pb.style.width = '0'; pw.style.display = 'none';
+        });
+      };
+      rd.onerror = () => { st.textContent = 'File read error'; pw.style.display = 'none'; };
+      rd.readAsArrayBuffer(f);
+    });
+  }
   </script>
 
   <!--

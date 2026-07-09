@@ -360,10 +360,65 @@ explicit request.
 - Clock pre-advanced ~2.33 s so first paint of a preset already has 4
   beats in flight (matches hero's first-paint contract).
 
+### Added — full site build (pillar pages, Manifold, quiz, waitlist, auth, footer)
+The homepage was approved and locked; this pass builds out the rest per
+DESIGN.md §5, porting the interactive functionality from `_reference/`
+into the new design system.
+
+**Router.** Hash-based (adopted from `_reference/`). `#` → home,
+`#record-label` / `#sound-design` / `#melomania` / `#manifold` /
+`#early-access` → the respective pillar page. `#frequency` opens the
+quiz modal and stays on home. Router hides the loading cover on direct-URL
+loads of non-home pages so pillar pages don't sit behind ivory while
+hero WebGL is booting.
+
+**Record Label** — Independent. Artist-first. Armin Saber's Spotify /
+Apple Music / YouTube / SoundCloud pills; "Discover your song →" CTA
+opens the Frequency quiz modal.
+
+**Sound Design** — Sonic identity for brands and spaces, zero to one
+hundred. Capabilities list, selected client chips (Porsche, Leyla
+Kashani, Haash & Co.), contact email.
+
+**Melomania (dark inversion)** — full `--ink` background, `--paper`
+text, green accents that may glow (per DESIGN.md — "on light pages it
+never glows"). Event card with the May 2, 2026 date and RA link (no
+city per the no-city-in-house-copy rule).
+
+**Manifold** — full-viewport WebGL visualizer ported from `_reference/`.
+Dark ground kept; UI chrome (title, buttons, labels) uses the house cut
++ Inter, dropping the old Bebas / DM Mono per DESIGN.md §5. Same audio
+reactivity (bass/mid/high band decomposition, deforming sphere, wireframe,
+three concentric rings with lit pointlights). Dynamic-imports the same
+vendored three.js the hero and Labs use — no duplicate three.js payload.
+rAF loop skips render when the page isn't active.
+
+**Early Access** — Waitlist form (first/last name, email) posts to the
+same Supabase table + confirmation edge function as `_reference/`.
+"You're in" panel on success.
+
+**Frequency quiz modal** — full 4-question flow, 15-song catalog, scoring
+logic unchanged from `_reference/`. Result card in the new type system
+(house-cut serif for song title, italic Fraunces for the reason line),
+Spotify link.
+
+**Auth modal** — Sign up / Log in tabs, Supabase-backed. `_reference/`'s
+signup writes a `profiles` row on account creation.
+
+**Footer** — quiet: wordmark (italic Fraunces), Contact (mailto),
+Instagram, Early Access. No city.
+
+**Pillar-page framework** — shared `.pillar-nav` (back link + Early
+Access shortcut), `.pillar-hero`, `.pillar-body`, `.pillar-section`,
+`.pill-row` / `.pill` / `.pill.fill`, brand chips, event card. All in
+the house cut with hairline-only borders per DESIGN.md §3.
+
+**Supabase** loaded from CDN (`onerror` graceful degrade — if it fails,
+auth and waitlist just no-op; the rest of the site keeps working).
+
 ### Pending review
-- Serving locally at http://127.0.0.1:4200 — awaiting approval on the
-  type upgrade + Labs redesign before touching pillar pages, Early
-  Access, footer (per DESIGN.md §7).
+- Serving locally at http://127.0.0.1:4200 — site is navigable end-to-end.
+  Awaiting founder review before GitHub Pages + custom-domain setup.
 
 ### Next
 - The House editorial index (four pillars as equals).
