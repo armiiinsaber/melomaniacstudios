@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Melomaniac Studios — A house for sound</title>
+  <meta name="description" content="Melomaniac Studios — a house for sound. Toronto.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #B8F06E;
+      --green-ink: #24350D;
+      --paper: #F5F3EC;
+      --paper-deep: #ECE9DF;
+      --ink: #141310;
+      --ink-soft: rgba(20,19,16,.55);
+      --ink-mute: rgba(20,19,16,.34);
+      --hairline: rgba(20,19,16,.14);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 400;
+      line-height: 1.5;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    ::selection { background: var(--green); color: var(--ink); }
+    a { color: inherit; text-decoration: none; }
+    h1, h2, h3, p { text-wrap: balance; }
+
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      min-height: 100svh;
+      overflow: hidden;
+      background: var(--paper);
+    }
+    #hero-canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 100vh;
+      min-height: 100svh;
+      padding: 2.4rem clamp(1.5rem, 4vw, 3.5rem) 1.8rem;
+      pointer-events: none;
+    }
+    .hero-content > * { pointer-events: auto; }
+
+    .hero-content::before {
+      content: '';
+      position: absolute;
+      left: -6%;
+      top: 18%;
+      width: 78%;
+      height: 62%;
+      background: radial-gradient(ellipse at 32% 50%, rgba(245,243,236,.62) 0%, rgba(245,243,236,0) 62%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: .85rem;
+      font-size: .68rem; letter-spacing: .34em; text-transform: uppercase;
+      color: var(--ink);
+      font-weight: 500;
+      align-self: start; justify-self: start;
+    }
+    .hero-eyebrow::before {
+      content: ''; width: 30px; height: 1px; background: var(--ink);
+    }
+
+    .hero-main {
+      align-self: center;
+      max-width: min(60ch, 100%);
+      display: flex; flex-direction: column;
+      gap: 1.4rem;
+    }
+    .hero-wordmark {
+      font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+      font-variation-settings: 'opsz' 144;
+      font-weight: 300;
+      font-size: clamp(4.2rem, 13.4vw, 12.8rem);
+      line-height: .86;
+      letter-spacing: -.028em;
+      color: var(--ink);
+      display: flex; flex-direction: column;
+    }
+    .hero-wordmark .w-a { display: block; }
+    .hero-wordmark .w-b {
+      display: block;
+      font-style: italic;
+      font-weight: 300;
+      padding-left: .06em;
+      margin-top: -.015em;
+    }
+    .hero-tagline {
+      font-family: 'Fraunces', serif;
+      font-variation-settings: 'opsz' 24;
+      font-style: italic;
+      font-weight: 300;
+      font-size: clamp(1.05rem, 1.55vw, 1.5rem);
+      line-height: 1.35;
+      color: var(--ink-soft);
+      max-width: 30ch;
+    }
+
+    .hero-scroll {
+      justify-self: center;
+      display: inline-flex; flex-direction: column; align-items: center; gap: .55rem;
+      font-size: .55rem; letter-spacing: .38em; text-transform: uppercase;
+      color: var(--ink-mute); font-weight: 500;
+    }
+    .hero-scroll .line {
+      display: block;
+      width: 1px; height: 22px;
+      background: var(--ink-mute);
+      transform-origin: top center;
+      animation: scrollpulse 2.8s ease-in-out infinite;
+    }
+    @keyframes scrollpulse {
+      0%, 100% { transform: scaleY(.5); opacity: .5; }
+      50%      { transform: scaleY(1);  opacity: 1; }
+    }
+
+    @media (max-width: 720px) {
+      .hero-content { padding: 2rem 1.5rem 1.4rem; }
+      .hero-content::before { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hero-scroll .line { animation: none; opacity: .6; }
+      html { scroll-behavior: auto; }
+    }
+
+    .no-webgl {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--ink-soft); font-size: .7rem; letter-spacing: .3em; text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <canvas id="hero-canvas" aria-hidden="true"></canvas>
+      <div class="hero-content">
+        <div class="hero-eyebrow"><span>Melomaniac Studios · Toronto</span></div>
+        <div class="hero-main">
+          <h1 class="hero-wordmark">
+            <span class="w-a">Melomaniac</span>
+            <span class="w-b">Studios</span>
+          </h1>
+          <p class="hero-tagline">A house for sound.</p>
+        </div>
+        <div class="hero-scroll">
+          <span>Scroll</span>
+          <span class="line" aria-hidden="true"></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/three@0.161.0/build/three.min.js"></script>
+  <script>
+  (() => {
+    const canvas = document.getElementById('hero-canvas');
+    if (!window.THREE) { canvas.replaceWith(Object.assign(document.createElement('div'), { className: 'no-webgl', textContent: 'three.js failed to load' })); return; }
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const INK   = 0x141310;
+    const GREEN = 0xB8F06E;
+    const PAPER = 0xF5F3EC;
+
+    // Seeded RNG — mulberry32. Seeded from date+hour+minute+10s bucket so it evolves through the day
+    // and is never quite the same twice.
+    const now = new Date();
+    const seed = (
+      (now.getFullYear() * 366 + now.getMonth() * 31 + now.getDate()) * 1440
+      + now.getHours() * 60 + now.getMinutes()
+    ) ^ (Math.floor(now.getSeconds() / 10) * 2654435761);
+    let s = seed >>> 0;
+    const rng = () => {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const pick = (arr) => arr[Math.floor(rng() * arr.length)];
+    const rand = (a, b) => a + rng() * (b - a);
+
+    const FOLDS = [8, 10, 12, 16];
+    const primary = pick(FOLDS);
+
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    } catch (e) {
+      canvas.replaceWith(Object.assign(document.createElement('div'), { className: 'no-webgl', textContent: 'WebGL unavailable' }));
+      return;
+    }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(PAPER, 1);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+    camera.position.z = 8;
+
+    // Root group — holds everything, tilted and orbited as one sculpture.
+    const assembly = new THREE.Group();
+    scene.add(assembly);
+
+    // ---- Line-builders (rosette/girih geometry) ----
+    function bufferLines(positions, color, opacity) {
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      return new THREE.LineSegments(geom, mat);
+    }
+    function bufferLoop(positions, color, opacity) {
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+      return new THREE.Line(geom, mat);
+    }
+    // Star polygon {n/step}: connect vertex i to vertex (i+step) mod n at radius r on plane z.
+    function starChords(n, radius, step, color, opacity, z=0) {
+      const verts = [];
+      for (let i = 0; i < n; i++) {
+        const t = (i / n) * Math.PI * 2;
+        verts.push([Math.cos(t) * radius, Math.sin(t) * radius, z]);
+      }
+      const positions = [];
+      for (let i = 0; i < n; i++) {
+        const j = (i + step) % n;
+        positions.push(...verts[i], ...verts[j]);
+      }
+      return bufferLines(positions, color, opacity);
+    }
+    function circle(radius, color, opacity, z=0, segments=192) {
+      const positions = [];
+      for (let i = 0; i <= segments; i++) {
+        const t = (i / segments) * Math.PI * 2;
+        positions.push(Math.cos(t) * radius, Math.sin(t) * radius, z);
+      }
+      return bufferLoop(positions, color, opacity);
+    }
+    function radials(n, r0, r1, color, opacity, z=0, phase=0) {
+      const positions = [];
+      for (let i = 0; i < n; i++) {
+        const t = (i / n) * Math.PI * 2 + phase;
+        positions.push(Math.cos(t) * r0, Math.sin(t) * r0, z, Math.cos(t) * r1, Math.sin(t) * r1, z);
+      }
+      return bufferLines(positions, color, opacity);
+    }
+    // Girih-style "strap" band: a ring of two nested star polygons at close radii, giving that
+    // interlocked, woven feel. Returned as a group so it can spin as one.
+    function girihBand(n, rInner, rOuter, stepA, stepB, color, opacity, z) {
+      const g = new THREE.Group();
+      g.add(starChords(n, rInner, stepA, color, opacity, z));
+      g.add(starChords(n, rOuter, stepB, color, opacity * 0.75, z));
+      return g;
+    }
+
+    // ---- Compose layers ----
+    // Each layer is a plane in ~2D at a distinct z, spun at its own rate.
+    // Together they read as a sculptural etching.
+    const spinners = [];
+
+    // outermost hairline circle — sets the "frame"
+    const c0 = circle(2.85, INK, 0.15, -0.55);
+    assembly.add(c0);
+
+    // outer star ring
+    const outerStep = Math.max(3, Math.floor(primary / 2) - (rng() < .5 ? 1 : 2));
+    const outer = starChords(primary, 2.6, outerStep, INK, 0.42, -0.45);
+    assembly.add(outer);
+    spinners.push({ obj: outer, spin: 0.0055 * (rng() < .5 ? 1 : -1) });
+
+    // outer radial spokes — restrained, low opacity
+    const spokes = radials(primary * 2, 1.3, 2.6, INK, 0.11, -0.25, rng() * Math.PI * 2);
+    assembly.add(spokes);
+    spinners.push({ obj: spokes, spin: 0.003 });
+
+    // middle girih band — this is the visual heart
+    const midFold = pick(FOLDS);
+    const stepA = Math.max(2, Math.floor(midFold / 2) - 1);
+    const stepB = Math.max(3, Math.floor(midFold / 2));
+    const band = girihBand(midFold, 1.72, 2.05, stepA, stepB, INK, 0.55, 0.0);
+    assembly.add(band);
+    spinners.push({ obj: band, spin: -0.011 });
+
+    // the one confident green trace — a star polygon woven between mid and inner
+    const greenFold = pick([primary, midFold, 12]);
+    const greenStep = Math.max(2, Math.floor(greenFold / 2) + (rng() < .5 ? 0 : 1));
+    const greenTrace = starChords(greenFold, 2.15, greenStep, GREEN, 0.9, 0.15);
+    assembly.add(greenTrace);
+    spinners.push({ obj: greenTrace, spin: 0.008 });
+
+    // green concentric hairline — extremely rationed
+    const greenRing = circle(2.15, GREEN, 0.42, 0.15);
+    assembly.add(greenRing);
+
+    // inner rosette (always 12-fold — classic Persian rosette count, without spelling it)
+    const innerStep = pick([3, 5, 7]);
+    const inner = starChords(12, 1.35, innerStep, INK, 0.68, 0.42);
+    assembly.add(inner);
+    spinners.push({ obj: inner, spin: 0.019 });
+
+    const innerRing = circle(1.35, INK, 0.32, 0.42);
+    assembly.add(innerRing);
+
+    // central 8-fold rosette
+    const central = starChords(8, 0.6, 3, INK, 0.82, 0.7);
+    assembly.add(central);
+    spinners.push({ obj: central, spin: -0.026 });
+
+    // dead-center dot (ring)
+    const dot = circle(0.13, INK, 0.7, 0.85, 64);
+    assembly.add(dot);
+
+    // subtle green radial accents — half-count, short reach, one per "petal"
+    const gAccent = radials(Math.max(4, Math.floor(primary / 2)), 0.62, 1.28, GREEN, 0.42, 0.55, rng() * Math.PI * 2);
+    assembly.add(gAccent);
+    spinners.push({ obj: gAccent, spin: -0.007 });
+
+    // ---- Particle field (fine thread dust) ----
+    const PC = 280;
+    const pPos = new Float32Array(PC * 3);
+    const pCol = new Float32Array(PC * 3);
+    const pMeta = new Float32Array(PC * 4); // radius, baseAngle, freq, zBase
+    const inkC = new THREE.Color(INK), greenC = new THREE.Color(GREEN);
+    for (let i = 0; i < PC; i++) {
+      const r = rand(0.35, 3.15);
+      const a = rng() * Math.PI * 2;
+      const z0 = (rng() - 0.5) * 1.1;
+      pPos[i*3]     = Math.cos(a) * r;
+      pPos[i*3+1]   = Math.sin(a) * r;
+      pPos[i*3+2]   = z0;
+      pMeta[i*4]    = r;
+      pMeta[i*4+1]  = a;
+      pMeta[i*4+2]  = rand(0.35, 1.6);
+      pMeta[i*4+3]  = z0;
+      const isGreen = rng() < 0.12; // ~12% green — the design's 10–15% target
+      const c = isGreen ? greenC : inkC;
+      pCol[i*3] = c.r; pCol[i*3+1] = c.g; pCol[i*3+2] = c.b;
+    }
+    const pGeom = new THREE.BufferGeometry();
+    pGeom.setAttribute('position', new THREE.Float32BufferAttribute(pPos, 3));
+    pGeom.setAttribute('color', new THREE.Float32BufferAttribute(pCol, 3));
+    const particles = new THREE.Points(pGeom, new THREE.PointsMaterial({
+      size: 0.019, sizeAttenuation: true,
+      vertexColors: true, transparent: true, opacity: 0.55
+    }));
+    assembly.add(particles);
+
+    // ---- Base orientation (sculptural tilt + random-per-load starting angle) ----
+    const baseTiltX = 0.32;
+    assembly.rotation.x = baseTiltX;
+    assembly.rotation.z = rng() * Math.PI * 2;
+
+    // ---- Sizing / composition ----
+    function resize() {
+      const w = window.innerWidth, h = window.innerHeight;
+      renderer.setSize(w, h, false);
+      const aspect = w / h;
+      camera.aspect = aspect;
+      // Pull the camera back for portrait / narrow so the piece never crops.
+      camera.position.z = aspect >= 1.15 ? 8 : (aspect >= 0.85 ? 9.2 : (8 / Math.max(aspect, 0.42)));
+      camera.updateProjectionMatrix();
+
+      // Off-center on wide screens so the wordmark has left-column space.
+      const isWide = aspect >= 1.4;
+      const isMed  = aspect >= 0.95;
+      assembly.position.x = isWide ? 1.6 : (isMed ? 0.7 : 0);
+      assembly.scale.setScalar(isWide ? 1.0 : (isMed ? 0.9 : 0.82));
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // ---- Cursor perturbation ----
+    const cursor = { x: 0, y: 0, tx: 0, ty: 0 };
+    window.addEventListener('pointermove', (e) => {
+      cursor.tx = (e.clientX / window.innerWidth  - 0.5) * 2;
+      cursor.ty = (e.clientY / window.innerHeight - 0.5) * 2;
+    }, { passive: true });
+
+    // ---- Animation ----
+    const clock = new THREE.Clock();
+    function tick() {
+      const t = clock.getElapsedTime();
+
+      for (const l of spinners) l.obj.rotation.z += l.spin;
+
+      // Slow drift on the whole assembly (never the same twice, ~20–30s cycle).
+      const driftY = Math.sin(t * 0.075) * 0.26;
+      const driftX = Math.sin(t * 0.11)  * 0.06;
+      cursor.x += (cursor.tx - cursor.x) * 0.035;
+      cursor.y += (cursor.ty - cursor.y) * 0.035;
+      assembly.rotation.y = driftY + cursor.x * 0.22;
+      assembly.rotation.x = baseTiltX + driftX - cursor.y * 0.12;
+
+      // Particles orbit + gentle z shimmer
+      const pa = particles.geometry.attributes.position;
+      for (let i = 0; i < PC; i++) {
+        const r = pMeta[i*4];
+        const baseA = pMeta[i*4+1];
+        const freq = pMeta[i*4+2];
+        const z0 = pMeta[i*4+3];
+        const drift = Math.sin(t * 0.18 * freq + i * 0.13) * 0.05;
+        const a = baseA + t * (i % 3 === 0 ? -0.014 : 0.019);
+        pa.array[i*3]   = Math.cos(a) * (r + drift);
+        pa.array[i*3+1] = Math.sin(a) * (r + drift);
+        pa.array[i*3+2] = z0 + Math.sin(t * 0.42 + i * 0.71) * 0.07;
+      }
+      pa.needsUpdate = true;
+
+      renderer.render(scene, camera);
+      if (!reducedMotion) requestAnimationFrame(tick);
+    }
+
+    if (reducedMotion) {
+      // Reduced motion: render a single static poster frame, no rAF.
+      renderer.render(scene, camera);
+    } else {
+      tick();
+    }
+  })();
+  </script>
+</body>
+</html>

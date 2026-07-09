@@ -1,0 +1,365 @@
+<nav id="nav">
+  <a href="#" class="nlogo" onclick="location.hash='';return false;">Melomaniac Studios</a>
+  <div class="nlinks">
+    <a href="#record-label" class="nlink" data-page="record-label">Record Label</a>
+    <a href="#sound-design" class="nlink" data-page="sound-design">Sound Design</a>
+    <a href="#melomania" class="nlink" data-page="melomania">Melomania</a>
+  </div>
+  <div class="nright">
+    <a href="#early-access" class="nbtn ea-lnk" data-page="early-access">Early Access</a>
+  </div>
+</nav>
+
+<div id="page-home" class="page on">
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="h-eyebrow">Melomaniac Studios · Creative Technology</div>
+      <h1 class="h-title">MELOMANIAC <span class="g">LABS</span></h1>
+      <p class="h-desc">We build creative technology for music. Tools that transform how you experience, visualize, and discover sound.</p>
+      <div class="h-products">
+        <a class="h-prod" href="#manifold">
+          <span class="h-prod-label">01 · Live</span>
+          <span class="h-prod-name">Manifold</span>
+          <span class="h-prod-desc">3D Audio Visualizer</span>
+          <span class="h-prod-arr">Open →</span>
+        </a>
+        <button class="h-prod" onclick="openQuiz()">
+          <span class="h-prod-label">02 · Live</span>
+          <span class="h-prod-name">Frequency</span>
+          <span class="h-prod-desc">Song Discovery Engine</span>
+          <span class="h-prod-arr">Find yours →</span>
+        </button>
+        <a class="h-prod" href="https://noted.melomaniacstudios.com" target="_blank">
+          <span class="h-prod-label">03 · Live</span>
+          <span class="h-prod-name">Noted</span>
+          <span class="h-prod-desc">Voice Mix Notes</span>
+          <span class="h-prod-arr">Open →</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="ps">
+    <div class="ps-info">
+      <div class="ps-num">01 · Melomaniac Labs</div>
+      <h2 class="ps-name">MANIFOLD</h2>
+      <p class="ps-lead">Your music, made visible.</p>
+      <p class="ps-desc">Upload any audio file. Watch it deform into a reactive 3D sculpture that moves with every frequency, beat, and drop in real time. Drag to rotate. Scroll to zoom.</p>
+      <div class="ps-tags">
+        <span class="ps-tag">3D Visualization</span>
+        <span class="ps-tag">Real-time Reactive</span>
+        <span class="ps-tag">Any Audio Format</span>
+        <span class="ps-tag">WebGL</span>
+      </div>
+      <a class="ps-cta" href="#manifold">Launch Manifold →</a>
+    </div>
+    <div class="ps-vis">
+      <div class="msphere">
+        <svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" width="220" height="220">
+          <defs><radialGradient id="sg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(184,240,110,.12)"/><stop offset="100%" stop-color="rgba(184,240,110,0)"/></radialGradient></defs>
+          <circle cx="110" cy="110" r="100" fill="url(#sg)"/>
+          <circle cx="110" cy="110" r="100" fill="none" stroke="rgba(184,240,110,.14)" stroke-width=".8"/>
+          <ellipse cx="110" cy="110" rx="100" ry="26" fill="none" stroke="rgba(184,240,110,.22)" stroke-width=".8"/>
+          <ellipse cx="110" cy="110" rx="100" ry="58" fill="none" stroke="rgba(184,240,110,.16)" stroke-width=".7"/>
+          <ellipse cx="110" cy="110" rx="100" ry="85" fill="none" stroke="rgba(184,240,110,.11)" stroke-width=".6"/>
+          <ellipse cx="110" cy="110" rx="26" ry="100" fill="none" stroke="rgba(184,240,110,.22)" stroke-width=".8"/>
+          <ellipse cx="110" cy="110" rx="58" ry="100" fill="none" stroke="rgba(184,240,110,.16)" stroke-width=".7"/>
+          <ellipse cx="110" cy="110" rx="85" ry="100" fill="none" stroke="rgba(184,240,110,.11)" stroke-width=".6"/>
+          <circle cx="110" cy="110" r="4" fill="rgba(184,240,110,.7)"/>
+          <circle cx="110" cy="110" r="9" fill="none" stroke="rgba(184,240,110,.28)" stroke-width=".8"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="ps flip">
+    <div class="ps-vis">
+      <div class="fq-preview">
+        <div class="fqp-label">Question 2 of 4</div>
+        <div class="fqp-q">What are you feeling?</div>
+        <div class="fqp-opts">
+          <div class="fqp-opt">Nostalgic</div>
+          <div class="fqp-opt sel">Creative, floaty ✓</div>
+          <div class="fqp-opt">Happy, good vibes</div>
+          <div class="fqp-opt">Calm, at ease</div>
+        </div>
+        <div class="fqp-divider"></div>
+        <div class="fqp-result-label">Your match</div>
+        <div class="fqp-result">AZAR (My Town)</div>
+      </div>
+    </div>
+    <div class="ps-info">
+      <div class="ps-num">02 · Melomaniac Labs</div>
+      <h2 class="ps-name">FREQUENCY</h2>
+      <p class="ps-lead">Find yours in four questions.</p>
+      <p class="ps-desc">A curated song recommendation engine built around Armin Saber's catalog. Answer four questions about your mood, energy, and what you're feeling — we match you to the right song.</p>
+      <div class="ps-tags">
+        <span class="ps-tag">Armin Saber</span>
+        <span class="ps-tag">15 Songs</span>
+        <span class="ps-tag">4 Questions</span>
+        <span class="ps-tag">Personalized</span>
+      </div>
+      <button class="ps-cta" onclick="openQuiz()">Find your Frequency →</button>
+    </div>
+  </section>
+
+  <section class="ps">
+    <div class="ps-info">
+      <div class="ps-num">03 · Melomaniac Labs</div>
+      <h2 class="ps-name">NOTED</h2>
+      <p class="ps-lead">Talk to your mix.</p>
+      <p class="ps-desc">Load your bounce. Ride, walk, drive. Pause the track from your headphones and just talk — every note pins to the exact moment in the song, ready for your next session. Completely hands-free.</p>
+      <div class="ps-tags">
+        <span class="ps-tag">Voice Notes</span>
+        <span class="ps-tag">Timestamped</span>
+        <span class="ps-tag">Hands-Free</span>
+        <span class="ps-tag">Any Audio Format</span>
+        <span class="ps-tag">Works Offline</span>
+      </div>
+      <a class="ps-cta" href="https://noted.melomaniacstudios.com" target="_blank">Launch Noted →</a>
+    </div>
+    <div class="ps-vis">
+      <div class="nt-preview">
+        <div class="ntp-state">Paused · Listening</div>
+        <div>
+          <div class="ntp-ts">2:47</div>
+          <div class="ntp-sec">Chorus 2</div>
+        </div>
+        <div class="ntp-txt">bring the vocal up one dB right here</div>
+        <div class="ntp-divider"></div>
+        <div class="ntp-note"><span class="t">0:38</span><span>snare too bright</span><span class="d">✓</span></div>
+        <div class="ntp-note"><span class="t">1:12</span><span>cut the pad</span><span class="d">✓</span></div>
+        <div class="ntp-note"><span class="t">1:56</span><span>low end muddy in drop</span><span class="d"></span></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="page-record-label" class="page">
+  <div class="pg-hero">
+    <div class="pg-tag">Record Label · Melomaniac Studios</div>
+    <div class="pg-title">Armin Saber</div>
+    <div class="pg-desc">Iranian-Canadian producer based in <strong>Toronto</strong>. Experimental electronic, Farsi soul.</div>
+  </div>
+  <div class="pg-body">
+    <div class="pill-row">
+      <a class="pill" href="https://open.spotify.com/artist/5cI5jeUkUKcKSvMs5DNKno" target="_blank">♫ Spotify</a>
+      <a class="pill" href="https://music.apple.com/ca/artist/armin-saber/1690610771" target="_blank">♫ Apple Music</a>
+      <a class="pill" href="https://www.youtube.com/@armiiinsaber" target="_blank">▶ YouTube</a>
+      <a class="pill" href="https://soundcloud.com/arminsaber" target="_blank">◎ SoundCloud</a>
+    </div>
+    <button class="pill fill" onclick="openQuiz()" style="width:fit-content">Discover your song →</button>
+  </div>
+</div>
+
+<div id="page-sound-design" class="page">
+  <div class="pg-hero">
+    <div class="pg-tag">Sound Design · Melomaniac Studios</div>
+    <div class="pg-title">Sound Design</div>
+    <div class="pg-desc">Sonic direction for brands and spaces. Fashion houses, automotive, jewelry, cultural events.</div>
+  </div>
+  <div class="pg-body">
+    <div><div class="sec-lbl">Selected clients</div><div class="brands"><span class="brand">Porsche</span><span class="brand">Leyla Kashani</span><span class="brand">Haash &amp; Co.</span></div></div>
+  </div>
+</div>
+
+<div id="page-melomania" class="page">
+  <div class="pg-hero">
+    <div class="pg-tag">Party Concept · Melomaniac Studios</div>
+    <div class="pg-title">Melomania</div>
+    <div class="badge-inv" style="margin-top:.2rem">Invite Only</div>
+    <div class="pg-desc" style="margin-top:.5rem">A party concept rooted in originality. Armin Saber performing full original sets built specifically for each show. Invite-only or through Melomaniac Studios members.</div>
+  </div>
+  <div class="pg-body">
+    <div class="ecard">
+      <div class="sec-lbl">Next Event</div>
+      <div class="ecard-date">MAY 2</div>
+      <div class="ecard-loc">2026 · Toronto</div>
+      <a class="pill fill" href="https://ra.co/events/2425993" target="_blank" style="margin-top:.3rem;width:fit-content">Get Access →</a>
+    </div>
+  </div>
+</div>
+
+<div id="page-manifold" class="page" style="padding-top:0;height:100vh;overflow:hidden;position:relative;background:#030408">
+  <canvas id="mfc"></canvas>
+  <div class="mf-bar">
+    <button class="mf-back" onclick="location.hash=''">← Labs</button>
+    <span class="mf-lbl">MANIFOLD · MM LABS</span>
+    <div style="width:80px"></div>
+  </div>
+  <div id="mf-ui">
+    <div class="mf-title">MANIFOLD</div>
+    <div class="mf-sub">sound becomes form</div>
+    <label for="mff" class="mf-upl"><span class="mf-upl-ico">🎵</span><span>Upload Audio</span></label>
+    <div id="mf-pw"><div id="mf-pb"></div></div>
+    <div id="mf-st"></div>
+  </div>
+  <input type="file" id="mff" accept=".mp3,.wav,.m4a,.aac,.ogg,.flac" style="display:none">
+  <div id="mf-ctrl">
+    <div class="mf-trk" id="mf-trackname"></div>
+    <div class="mf-btns">
+      <button id="mf-pp" class="mf-btn" onclick="mfStop()">⏸ Pause</button>
+      <button class="mf-btn" onclick="mfNew()">↑ Load New</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="page-early-access" class="page">
+  <div class="ea-page">
+    <div class="ea-tag">Melomaniac Labs · Early Access</div>
+    <h1 class="ea-h">BE <span>FIRST.</span></h1>
+    <p class="ea-story">
+      Melomaniac Labs builds creative technology for music — tools that make sound visual, personal, and experiential.<br><br>
+      <strong>Manifold</strong> turns any audio into a reactive 3D sculpture. <strong>Frequency</strong> finds your song in four questions. <strong>Noted</strong> lets you talk to your mix, hands-free. These are the first three.<br><br>
+      More are being built right now. We're looking for early users — people who care about music and want to experience these tools before anyone else. Leave your name and email and we'll reach out when something new is ready.
+    </p>
+    <div class="ea-products">
+      <span class="ea-prod">Manifold · Live</span>
+      <span class="ea-prod">Frequency · Live</span>
+      <span class="ea-prod">Noted · Live</span>
+    </div>
+    <div id="ea-form-wrap">
+      <div class="ea-form">
+        <div class="ea-row">
+          <input class="mi" type="text" id="ea-fn" placeholder="First name" maxlength="40"/>
+          <input class="mi" type="text" id="ea-ln" placeholder="Last name" maxlength="40"/>
+        </div>
+        <input class="mi" type="email" id="ea-em" placeholder="Email address"/>
+        <div id="ea-err" class="ea-err"></div>
+        <button class="msub" id="ea-btn" onclick="joinWaitlist()">Get Early Access →</button>
+      </div>
+    </div>
+    <div class="ea-ok" id="ea-ok">
+      <div class="ea-ok-h">You're in.</div>
+      <div class="ea-ok-s">We'll reach out when the next tool is ready. No spam — just early access.<br><br>Check your <strong style="color:rgba(255,255,255,.6);font-weight:400">Promotions tab</strong> if you use Gmail.</div>
+    </div>
+  </div>
+</div>
+
+<div class="mo off" id="auth-mo" onclick="if(event.target===this)closeAuth()">
+  <div class="md">
+    <div class="md-hd"><div><div class="md-ti">JOIN</div><div class="md-sub">Create your Melomaniac account</div></div><button class="md-x" onclick="closeAuth()">✕</button></div>
+    <div class="tabs"><button class="tab on" id="ts" onclick="switchTab('signup')">Sign up</button><button class="tab" id="tl" onclick="switchTab('login')">Log in</button></div>
+    <div id="fs" class="mform">
+      <input class="mi" type="text" id="su" placeholder="Username" maxlength="30"/>
+      <input class="mi" type="email" id="se" placeholder="Email"/>
+      <input class="mi" type="password" id="sp" placeholder="Password (min 6 chars)"/>
+      <input class="mi" type="text" id="san" placeholder="Name your AI agent (e.g. NOVA, REX…)" maxlength="20"/>
+      <div id="ser" class="merr" style="display:none"></div><div id="sok" class="mok" style="display:none"></div>
+      <button class="msub" id="snb" onclick="handleSignup()">Create account</button>
+    </div>
+    <div id="fl" class="mform" style="display:none">
+      <input class="mi" type="email" id="le" placeholder="Email"/>
+      <input class="mi" type="password" id="lp" placeholder="Password"/>
+      <div id="ler" class="merr" style="display:none"></div>
+      <button class="msub" id="lnb" onclick="handleLogin()">Log in</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo off" id="prof-mo" onclick="if(event.target===this)closeProfile()">
+  <div class="md">
+    <div class="md-hd"><div><div class="pf-nm" id="pf-name">MELOMANIAC</div><div class="pf-si" id="pf-since"></div><div class="pf-ag" id="pf-agent">Agent: ECHO</div></div><button class="md-x" onclick="closeProfile()">✕</button></div>
+    <div><div class="pf-sl">Taste profile</div><div class="tlist" id="tlist"><span style="font-size:.52rem;color:var(--dim)">No songs yet.</span></div></div>
+    <div><div class="pf-sl">Song history</div><div class="hlist" id="hlist"><span style="font-size:.52rem;color:var(--dim);padding:.4rem 0;display:block">No songs yet.</span></div></div>
+    <button class="lo" onclick="signOut()">Sign out</button>
+  </div>
+</div>
+
+<div class="mo off" id="quiz-mo" onclick="if(event.target===this)closeQuiz()">
+  <div class="md" style="max-width:480px">
+    <div class="md-hd"><div><div class="md-ti">FREQUENCY</div><div class="md-sub">Find your song · Armin Saber · 15 tracks</div></div><button class="md-x" onclick="closeQuiz()">✕</button></div>
+    <div class="pbar"><div class="pfill" id="qpg" style="width:0%"></div></div>
+    <div class="qstep on" id="qs1"><div class="qlbl">Question 1 of 4</div><div class="qq">How's your energy right now?</div><div class="qopts"><button class="qopt" onclick="qa(event,1,'l')">Low — quiet, introspective</button><button class="qopt" onclick="qa(event,1,'m')">Medium — steady, in the zone</button><button class="qopt" onclick="qa(event,1,'h')">High — ready to move</button></div></div>
+    <div class="qstep" id="qs2"><button class="qback" onclick="qBack(2)">← Back</button><div class="qlbl">Question 2 of 4</div><div class="qq">What are you feeling?</div><div class="qopts"><button class="qopt" onclick="qa(event,2,'ns')">Nostalgic or melancholic</button><button class="qopt" onclick="qa(event,2,'ha')">Happy, good vibes</button><button class="qopt" onclick="qa(event,2,'cr')">Creative, floaty</button><button class="qopt" onclick="qa(event,2,'my')">Curious, thinking deeply</button><button class="qopt" onclick="qa(event,2,'ch')">Calm, at ease</button></div></div>
+    <div class="qstep" id="qs3"><button class="qback" onclick="qBack(3)">← Back</button><div class="qlbl">Question 3 of 4</div><div class="qq">What are you about to do?</div><div class="qopts"><button class="qopt" onclick="qa(event,3,'dn')">Dance or go out</button><button class="qopt" onclick="qa(event,3,'tk')">Reflect or journal</button><button class="qopt" onclick="qa(event,3,'fc')">Work or deep focus</button><button class="qopt" onclick="qa(event,3,'rx')">Relax, do nothing</button><button class="qopt" onclick="qa(event,3,'gv')">Just vibe</button></div></div>
+    <div class="qstep" id="qs4"><button class="qback" onclick="qBack(4)">← Back</button><div class="qlbl">Question 4 of 4</div><div class="qq">Vocals or no vocals?</div><div class="qopts"><button class="qopt" onclick="qa(event,4,'vc')">Vocals — something to feel</button><button class="qopt" onclick="qa(event,4,'inst')">Instrumental — just music</button><button class="qopt" onclick="qa(event,4,'ei')">Either works</button></div></div>
+    <div class="qres" id="qres"><div class="qr-hd">Your frequency.</div><div class="qr-card"><div class="qr-ti" id="qrt"></div><div class="qr-me" id="qrm"></div><div class="qr-re" id="qrr"></div><a class="slnk" id="qrl" href="#" target="_blank">♫ Listen on Spotify</a><div id="qtag"></div></div><div id="qprompt"></div><button class="qrst" onclick="qReset()">↺ Try again</button></div>
+  </div>
+</div>
+
+<script>
+const pageMap={'':'page-home','record-label':'page-record-label','sound-design':'page-sound-design','melomania':'page-melomania','manifold':'page-manifold','early-access':'page-early-access'};
+const mainNav=document.getElementById('nav');
+function route(){const hash=location.hash.replace('#','').trim(),pageId=pageMap[hash]||'page-home';document.querySelectorAll('.page').forEach(p=>{p.classList.remove('on');p.style.display='none';});const pg=document.getElementById(pageId);if(pg){pg.style.display='block';pg.classList.add('on');}document.querySelectorAll('.nlink').forEach(l=>l.classList.toggle('on',l.dataset.page===hash));mainNav.style.display=hash==='manifold'?'none':'flex';if(hash==='manifold')setTimeout(initMF,80);window.scrollTo(0,0);const titles={'':'Melomaniac Studios','record-label':'Record Label — Melomaniac Studios','sound-design':'Sound Design — Melomaniac Studios','melomania':'Melomania — Melomaniac Studios','manifold':'Manifold — Melomaniac Labs','early-access':'Early Access — Melomaniac Labs'};document.title=titles[hash]||'Melomaniac Studios';}
+window.addEventListener('hashchange',route);route();
+const SB_URL="https://kubzwqhctflmizorjgaf.supabase.co",SB_KEY="sb_publishable_JrdbRyJm9iv1_-G6knkLdw_gTPpVISc";
+let sb=null;try{if(typeof supabase!=='undefined')sb=supabase.createClient(SB_URL,SB_KEY);}catch(e){}
+let cUser=null,cProf=null;
+async function initAuth(){if(!sb)return;try{const{data:{session}}=await sb.auth.getSession();if(session)await setUser(session.user);sb.auth.onAuthStateChange(async(e,s)=>{if(s)await setUser(s.user);else clearUser();});}catch(e){}}
+async function setUser(u){cUser=u;try{const{data}=await sb.from('profiles').select('*').eq('id',u.id).single();cProf=data;ge('nav-uname').textContent=(data?.username||u.user_metadata?.username||'Profile').toUpperCase();}catch(e){}ge('nav-anon').style.display='none';ge('nav-user').style.display='flex';}
+function clearUser(){cUser=null;cProf=null;ge('nav-anon').style.display='flex';ge('nav-user').style.display='none';}
+function openAuth(t='signup'){if(!sb){alert('Auth unavailable right now.');return;}ge('auth-mo').classList.remove('off');switchTab(t);}
+function closeAuth(){ge('auth-mo').classList.add('off');clearErrs();}
+function switchTab(t){ge('ts').classList.toggle('on',t==='signup');ge('tl').classList.toggle('on',t==='login');ge('fs').style.display=t==='signup'?'flex':'none';ge('fl').style.display=t==='login'?'flex':'none';clearErrs();}
+function clearErrs(){['ser','sok','ler'].forEach(id=>{const e=ge(id);e.style.display='none';e.textContent='';});}
+async function handleSignup(){if(!sb)return;const u=ge('su').value.trim(),e=ge('se').value.trim(),p=ge('sp').value,an=(ge('san').value.trim()||'ECHO').toUpperCase(),btn=ge('snb'),err=ge('ser'),ok=ge('sok');if(!u||!e||!p){err.textContent='All fields required.';err.style.display='block';return;}btn.disabled=true;btn.textContent='Creating…';try{const{data,error}=await sb.auth.signUp({email:e,password:p,options:{data:{username:u}}});if(error){err.textContent=error.message;err.style.display='block';btn.disabled=false;btn.textContent='Create account';return;}if(data.user)await sb.from('profiles').upsert({id:data.user.id,username:u,email:e,agent_name:an,song_history:[],taste_t:[],guilty_t:[]});ok.textContent='✓ Email sent. Check your inbox.';ok.style.display='block';btn.disabled=false;btn.textContent='Create account';setTimeout(closeAuth,1800);}catch(e){err.textContent='Error — try again.';err.style.display='block';btn.disabled=false;btn.textContent='Create account';}}
+async function handleLogin(){if(!sb)return;const e=ge('le').value.trim(),p=ge('lp').value,btn=ge('lnb'),err=ge('ler');btn.disabled=true;btn.textContent='Logging in…';try{const{error}=await sb.auth.signInWithPassword({email:e,password:p});if(error){err.textContent=error.message;err.style.display='block';btn.disabled=false;btn.textContent='Log in';return;}btn.disabled=false;btn.textContent='Log in';closeAuth();}catch(e){err.textContent='Error — try again.';err.style.display='block';btn.disabled=false;btn.textContent='Log in';}}
+async function signOut(){if(sb)await sb.auth.signOut();closeProfile();}
+async function openProfile(){if(!cUser||!sb)return;try{const{data}=await sb.from('profiles').select('*').eq('id',cUser.id).single();cProf=data;ge('pf-name').textContent=(data?.username||cUser.user_metadata?.username||'Melomaniac').toUpperCase();ge('pf-since').textContent='Member since '+new Date(cUser.created_at).toLocaleDateString('en-US',{month:'long',year:'numeric'});ge('pf-agent').textContent='Agent: '+(data?.agent_name||'ECHO');const tags=data?.taste_tags||[];ge('tlist').innerHTML=tags.length?tags.map(t=>`<span class="ttag">${t}</span>`).join(''):'<span style="font-size:.52rem;color:var(--dim)">No songs yet.</span>';const hist=data?.song_history||[];ge('hlist').innerHTML=hist.length?hist.slice().reverse().slice(0,10).map(h=>{const s=songs.find(s=>s.id===h.song_id),d=new Date(h.listened_at).toLocaleDateString('en-US',{month:'short',day:'numeric'});return`<div class="hitem"><div class="hitem-s">${s?s.title:h.song_id}</div><div class="hitem-d">${d}</div></div>`;}).join(''):'<span style="font-size:.52rem;color:var(--dim);padding:.4rem 0;display:block">No songs yet.</span>';}catch(e){}ge('prof-mo').classList.remove('off');}
+function closeProfile(){ge('prof-mo').classList.add('off');}
+const ge=id=>document.getElementById(id);
+initAuth();
+const songs=[{id:"oh_friend",title:"oh friend…",meta:"Farsi · Experimental Electronic · Bittersweet",url:"https://open.spotify.com/track/3OSxWm7FffBFPLml3CCCTv",reason:"Layered, bittersweet.",e:["l","m"],m:["ns","cr"],a:["tk","rx","gv"],v:true,t:["introspective","bittersweet","experimental","farsi"]},{id:"may",title:"MAY JUST TAKE YOUR BREATH AWAY",meta:"English · Bass Music · Uplifting",url:"https://open.spotify.com/track/3Gb8e0SNFdzvKOTMQodpH0",reason:"Euphoric, full-body.",e:["h"],m:["ha"],a:["dn","gv"],v:true,t:["euphoric","bass","uplifting"]},{id:"life",title:"life",meta:"English · Minimal Electronic · Flow",url:"https://open.spotify.com/track/19DoSwaM6fjhmkKZ99T8aP",reason:"Focus state.",e:["m"],m:["cr"],a:["fc","tk"],v:true,t:["minimal","flow","focus"]},{id:"afterz",title:"afterz",meta:"Instrumental · Bass Guitar & Sax · Chill",url:"https://open.spotify.com/track/5y9PQqe3myV0VPSh6gAvAk",reason:"Minimal, warm.",e:["l"],m:["ch"],a:["rx"],v:false,t:["chill","warm","relaxing"]},{id:"kmbz",title:"KMBZ (heartless)",meta:"Farsi · Afro House · Good Vibes",url:"https://open.spotify.com/track/7lZdWMCxzLyMom3DoEV3wP",reason:"Dance with soul.",e:["h"],m:["ha"],a:["dn","gv"],v:true,t:["afro-house","celebration","farsi"]},{id:"ilyh",title:"ILYH",meta:"English & French · Groovy · Mysterious",url:"https://open.spotify.com/track/6WB2zNSarYy0gIoII6Uy7t",reason:"Groovy, playful.",e:["m"],m:["my","ha"],a:["gv","tk"],v:true,t:["groovy","playful","multilingual"]},{id:"sheep",title:"SHEEP",meta:"Instrumental · Experimental · Mysterious",url:"https://open.spotify.com/track/4BAKOSRH4sxz6MDV7hG9cN",reason:"Sonic journey.",e:["l","m"],m:["my","cr"],a:["fc","tk"],v:false,t:["experimental","deep-focus"]},{id:"thirteen",title:"1313",meta:"Instrumental · Groovy Electronic · Joyful",url:"https://open.spotify.com/track/0lXtpHmdy1AvSifVTh2Hu5",reason:"Colorful, energetic.",e:["h"],m:["ha","cr"],a:["dn","gv"],v:false,t:["joyful","groovy","energetic"]},{id:"noor",title:"NOOR",meta:"Instrumental · Chill & Progressive · Feel-Good",url:"https://open.spotify.com/track/4lpweUep7LmnjzivZah3mA",reason:"Relaxed, gentle movement.",e:["l","m"],m:["ch","ha"],a:["rx","gv"],v:false,t:["progressive","feel-good"]},{id:"azar",title:"AZAR (My Town)",meta:"Farsi · Energetic Electronic · Bittersweet",url:"https://open.spotify.com/track/62tXcvqaNFvhPxbxNFUOQW",reason:"Hits hard from bar one.",e:["h"],m:["ns","ha"],a:["dn","gv"],v:true,t:["bittersweet","energetic","farsi"]},{id:"shhla",title:"SHHLA (Without U)",meta:"Farsi · Experimental Groove · Mysterious",url:"https://open.spotify.com/track/73E5gS27DI47GsKLYCQdwr",reason:"Groovy, full of surprises.",e:["m"],m:["my"],a:["gv","tk"],v:true,t:["experimental","groovy","farsi"]},{id:"frydn",title:"FRYDN (Why?)",meta:"Farsi · Progressive Electronic · Nostalgic",url:"https://open.spotify.com/track/7FoI2iXr9CHXVUzQ0SFzXt",reason:"Deeply nostalgic.",e:["l","m"],m:["ns"],a:["rx","gv","tk"],v:true,t:["nostalgic","progressive","farsi"]},{id:"ftkhr",title:"FTKHR (Not Easy)",meta:"Farsi · Drum & Bass · Nostalgic & Energetic",url:"https://open.spotify.com/track/32s8ePJkpENaGxNrjulc92",reason:"Melancholic, bursting.",e:["m","h"],m:["ns"],a:["fc","tk"],v:true,t:["drum-and-bass","melancholic","farsi"]},{id:"ruby",title:"Ruby",meta:"Instrumental · Dark Minimal · Focus",url:"https://open.spotify.com/track/3EukojNISVjza3sPwIPWwl",reason:"Dark, hypnotic.",e:["l","m"],m:["my"],a:["fc"],v:false,t:["dark","minimal","hypnotic"]},{id:"hrb",title:"HRB",meta:"Instrumental · Funky Dark Electronic · Mysterious",url:"https://open.spotify.com/track/6SeMxHtQmzGyaqv1zyyEwd",reason:"Funky, dark.",e:["m"],m:["my","cr"],a:["gv","fc"],v:false,t:["funky","dark","groovy"]}];
+const qA={};
+function openQuiz(){ge('quiz-mo').classList.remove('off');qReset();}
+function closeQuiz(){ge('quiz-mo').classList.add('off');}
+function qReset(){Object.keys(qA).forEach(k=>delete qA[k]);document.querySelectorAll('.qopt').forEach(b=>b.classList.remove('sel'));ge('qpg').style.width='0%';const r=ge('qres');r.classList.remove('on');r.style.display='none';ge('qtag').innerHTML='';ge('qprompt').innerHTML='';qStep(1);}
+function qStep(n){document.querySelectorAll('.qstep').forEach(s=>s.classList.remove('on'));const el=ge('qs'+n);if(el)el.classList.add('on');ge('qpg').style.width=((n-1)/4*100)+'%';}
+function qBack(s){delete qA[s-1];qStep(s-1);}
+function qa(ev,s,v){qA[s]=v;document.querySelectorAll('#qs'+s+' .qopt').forEach(b=>b.classList.remove('sel'));ev.target.classList.add('sel');setTimeout(()=>{if(s<4)qStep(s+1);else qResult();},300);}
+function qScore(song){let s=0;if(song.e.includes(qA[1]))s+=3;if(song.m.includes(qA[2]))s+=3;if(song.a.includes(qA[3]))s+=2;if(qA[4]==='vc'&&song.v)s+=2;if(qA[4]==='inst'&&!song.v)s+=2;if(qA[4]==='ei')s+=1;return s;}
+async function qResult(){ge('qpg').style.width='100%';document.querySelectorAll('.qstep').forEach(s=>s.classList.remove('on'));let best=songs[0],bs=-1;songs.forEach(s=>{const sc=qScore(s);if(sc>bs){bs=sc;best=s;}});ge('qrt').textContent=best.title;ge('qrm').textContent=best.meta;ge('qrr').textContent=best.reason;ge('qrl').href=best.url;if(cUser)ge('qtag').innerHTML=`<div style="margin-top:.3rem"><button class="pill" style="font-size:.46rem" onclick="tagSong('${best.id}',this)">Save to taste →</button></div>`;const r=ge('qres');r.style.display='flex';r.classList.add('on');await saveRec(best);if(!cUser)ge('qprompt').innerHTML=`<div style="background:rgba(184,240,110,.04);border:1px solid rgba(184,240,110,.1);border-radius:6px;padding:1rem 1.1rem;display:flex;flex-direction:column;gap:.6rem"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.04em;color:#fff">Want your AI to remember you?</div><div style="font-size:.5rem;color:var(--dim);line-height:1.9">Create a free account — your taste gets saved, your AI gets smarter.</div><div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.2rem"><button class="pill fill" onclick="closeQuiz();openAuth('signup')">Create account</button><button class="pill" onclick="closeQuiz();openAuth('login')">Log in</button></div></div>`;}
+async function tagSong(songId,btn){if(!cUser||!sb)return;const song=songs.find(s=>s.id===songId);if(!song)return;const{data}=await sb.from('profiles').select('taste_tags').eq('id',cUser.id).single();const tt=[...new Set([...(data?.taste_tags||[]),...song.t])].slice(0,20);await sb.from('profiles').update({taste_t:tt}).eq('id',cUser.id);btn.textContent='✓ Saved';btn.disabled=true;}
+async function saveRec(song){if(!cUser||!song||!sb)return;const{data}=await sb.from('profiles').select('song_history,taste_tags').eq('id',cUser.id).single();const h=data?.song_history||[];h.push({song_id:song.id,listened_at:new Date().toISOString()});const nt=[...new Set([...(data?.taste_tags||[]),...song.t])].slice(0,20);await sb.from('profiles').update({song_history:h,taste_t:nt}).eq('id',cUser.id);}
+
+async function joinWaitlist(){
+  const fn=ge('ea-fn').value.trim(),ln=ge('ea-ln').value.trim(),em=ge('ea-em').value.trim();
+  const err=ge('ea-err'),btn=ge('ea-btn');
+  err.style.display='none';
+  if(!fn||!ln||!em){err.textContent='All fields required.';err.style.display='block';return;}
+  if(!em.includes('@')){err.textContent='Please enter a valid email.';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const res=await fetch(SB_URL+'/rest/v1/waitlist',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SB_KEY,
+        'Authorization':'Bearer '+SB_KEY,
+        'Prefer':'return=minimal'
+      },
+      body:JSON.stringify({first_name:fn,last_name:ln,email:em,source:'labs-early-access'})
+    });
+    if(!res.ok){
+      const d=await res.json().catch(()=>({}));
+      if(res.status===409||(d.code==='23505')){err.textContent='That email is already on the list.';err.style.display='block';}
+      else{err.textContent='Something went wrong ('+res.status+') — try again.';err.style.display='block';}
+      btn.disabled=false;btn.textContent='Get Early Access →';return;
+    }
+    // Send confirmation email via edge function (non-blocking)
+    fetch(SB_URL+'/functions/v1/clever-function',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SB_KEY},
+      body:JSON.stringify({email:em,firstName:fn})
+    }).catch(()=>{});
+    ge('ea-form-wrap').style.display='none';
+    const ok=ge('ea-ok');ok.style.display='flex';
+  }catch(e){err.textContent='Network error — check your connection and try again.';err.style.display='block';btn.disabled=false;btn.textContent='Get Early Access →';}
+}
+
+(function(){let rdy=0,ren,sc,cam,clk,sph,wG,wM,sM,ll,bl,pl,r1,r2,r3,ac,an,fd,td,sn,live=0,drag=0,px=0,py=0,tx=0,ty=0,cx=0,cy=0,bs=0,ms=0,hs=0,as=0,en=0,op,vc,lC,tC,dC,mfUI,pts,pB,PC=450,wfl,wfN=160,spk,sB,SN=52,SR=1.1,WRd=2.5,bH=new Float32Array(40),bIdx=0,bP=0,lB=0;const BD=[[1,3],[3,9],[9,40],[40,130],[130,350],[350,600]];
+window.initMF=function(){if(rdy)return;if(typeof THREE==='undefined'){const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';s.onload=window.initMF;document.head.appendChild(s);return;}rdy=1;mfUI=ge('mf-ui');const cv=ge('mfc');ren=new THREE.WebGLRenderer({canvas:cv,antialias:true});ren.setPixelRatio(Math.min(devicePixelRatio,2));ren.setSize(innerWidth,innerHeight);ren.setClearColor(0x030408,1);sc=new THREE.Scene();cam=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,.1,500);cam.position.z=innerWidth<600?6:4;clk=new THREE.Clock();sc.add(new THREE.AmbientLight(0x050a02,1));ll=new THREE.PointLight(0xb8f06e,3,20);ll.position.set(3,3,4);sc.add(ll);bl=new THREE.PointLight(0x1122ff,2,15);bl.position.set(-4,-1,3);sc.add(bl);pl=new THREE.PointLight(0xff44aa,1.5,12);pl.position.set(0,-3,-2);sc.add(pl);SR=innerWidth<600?.85:1.1;WRd=SR+1.4;const g=new THREE.SphereGeometry(SR,64,64);op=Float32Array.from(g.attributes.position.array);vc=g.attributes.position.count;sM=new THREE.MeshStandardMaterial({color:0x0a1205,emissive:0x0d2004,emissiveIntensity:1,metalness:.3,roughness:.5,side:THREE.DoubleSide,transparent:true,opacity:.92});sph=new THREE.Mesh(g,sM);sc.add(sph);wG=g.clone();wM=new THREE.MeshBasicMaterial({color:0xb8f06e,wireframe:true,transparent:true,opacity:.14});sc.add(new THREE.Mesh(wG,wM));function mkR(r,t,c,o){return new THREE.Mesh(new THREE.TorusGeometry(r,t,8,120),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o}));}const RS=SR+.75;r1=mkR(RS,.007,0xb8f06e,.22);r1.rotation.x=Math.PI/2;sc.add(r1);r2=mkR(RS+.3,.005,0x4488ff,.13);r2.rotation.x=Math.PI/3;sc.add(r2);r3=mkR(RS-.2,.005,0xff55bb,.1);r3.rotation.z=Math.PI/4;sc.add(r3);sB=[];const sP=new Float32Array(SN*6);for(let i=0;i<SN;i++){const ph=Math.acos(1-2*(i+.5)/SN),th=Math.PI*(1+Math.sqrt(5))*i,nx=Math.sin(ph)*Math.cos(th),ny=Math.cos(ph),nz=Math.sin(ph)*Math.sin(th);sB.push(nx,ny,nz);sP[i*6]=nx*(SR+.01);sP[i*6+1]=ny*(SR+.01);sP[i*6+2]=nz*(SR+.01);sP[i*6+3]=nx*(SR+.03);sP[i*6+4]=ny*(SR+.03);sP[i*6+5]=nz*(SR+.03);}const sG=new THREE.BufferGeometry();sG.setAttribute('position',new THREE.BufferAttribute(sP,3));spk=new THREE.LineSegments(sG,new THREE.LineBasicMaterial({color:0xb8f06e,transparent:true,opacity:.7}));sc.add(spk);pB=new Float32Array(PC*3);const pP=new Float32Array(PC*3),pC=new Float32Array(PC*3);for(let i=0;i<PC;i++){const th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1),r=1.7+Math.random()*1.1,x=Math.sin(ph)*Math.cos(th)*r,y=Math.cos(ph)*r,z=Math.sin(ph)*Math.sin(th)*r;pB[i*3]=pP[i*3]=x;pB[i*3+1]=pP[i*3+1]=y;pB[i*3+2]=pP[i*3+2]=z;pC[i*3]=.72;pC[i*3+1]=.94;pC[i*3+2]=.43;}const pG=new THREE.BufferGeometry();pG.setAttribute('position',new THREE.BufferAttribute(pP,3));pG.setAttribute('color',new THREE.BufferAttribute(pC,3));pts=new THREE.Points(pG,new THREE.PointsMaterial({size:.015,vertexColors:true,transparent:true,opacity:.35,sizeAttenuation:true}));sc.add(pts);const wfBuf=new Float32Array(wfN*3);for(let i=0;i<wfN;i++){const a=i/wfN*Math.PI*2;wfBuf[i*3]=Math.cos(a)*WRd;wfBuf[i*3+1]=0;wfBuf[i*3+2]=Math.sin(a)*WRd;}const wfGeo=new THREE.BufferGeometry();wfGeo.setAttribute('position',new THREE.BufferAttribute(wfBuf,3));wfl=new THREE.LineLoop(wfGeo,new THREE.LineBasicMaterial({color:0xb8f06e,transparent:true,opacity:.38}));sc.add(wfl);lC=new THREE.Color(0xb8f06e);tC=new THREE.Color(0x00ffcc);dC=new THREE.Color(0x0a1205);cv.addEventListener('mousedown',e=>{drag=1;px=e.clientX;py=e.clientY;});addEventListener('mouseup',()=>drag=0);addEventListener('mousemove',e=>{if(!drag)return;ty+=(e.clientX-px)*.007;tx+=(e.clientY-py)*.007;px=e.clientX;py=e.clientY;});cv.addEventListener('touchstart',e=>{if(e.touches.length===1){drag=1;px=e.touches[0].clientX;py=e.touches[0].clientY;}},{passive:true});cv.addEventListener('touchend',()=>drag=0,{passive:true});cv.addEventListener('touchmove',e=>{if(!drag||e.touches.length!==1)return;ty+=(e.touches[0].clientX-px)*.007;tx+=(e.touches[0].clientY-py)*.007;px=e.touches[0].clientX;py=e.touches[0].clientY;},{passive:true});cv.addEventListener('wheel',e=>{cam.position.z=Math.max(1.5,Math.min(10,cam.position.z+e.deltaY*.005));},{passive:true});addEventListener('resize',()=>{if(!rdy)return;cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);});loop();};
+function avB(lo,hi){if(!fd)return 0;let s=0;for(let i=lo;i<hi;i++)s+=fd[i];return s/(hi-lo)/255;}
+function deform(bass,mid,high,air,fr){const pos=sph.geometry.attributes.position,t=performance.now()*.001,fl=fr?fr.length:512;for(let i=0;i<vc;i++){const ix=i*3,ox=op[ix],oy=op[ix+1],oz=op[ix+2],l=Math.sqrt(ox*ox+oy*oy+oz*oz)||1,nx=ox/l,ny=oy/l,nz=oz/l,fv=fr?fr[Math.min(fl-1,Math.floor(i/vc*fl*.65))]/255:0,d=bass*.95*(1+.5*Math.sin(nx*4+t*1.8))+mid*.5*Math.sin(ny*8+nz*6+t*3.1)+high*.28*Math.sin(nx*18+ny*14+t*6.5)+air*.15*Math.sin(nz*30+t*11)+fv*.75;pos.setXYZ(i,ox+nx*d,oy+ny*d,oz+nz*d);}pos.needsUpdate=true;sph.geometry.computeVertexNormals();wG.attributes.position.array.set(sph.geometry.attributes.position.array);wG.attributes.position.needsUpdate=true;}
+function uS(fr){if(!spk||!fr)return;const sa=spk.geometry.attributes.position,step=Math.max(1,Math.floor(fr.length*.65/SN));for(let i=0;i<SN;i++){const fv=fr[Math.min(fr.length-1,i*step)]/255,nx=sB[i*3],ny=sB[i*3+1],nz=sB[i*3+2],r2=SR+.06+fv*1.4+bP*.18;sa.setXYZ(i*2,nx*(SR+.01),ny*(SR+.01),nz*(SR+.01));sa.setXYZ(i*2+1,nx*r2,ny*r2,nz*r2);}sa.needsUpdate=true;}
+function uP(t){if(!pts||!fd)return;const pa=pts.geometry.attributes.position,ca=pts.geometry.attributes.color,step=Math.max(1,Math.floor(fd.length*.6/PC));for(let i=0;i<PC;i++){const fv=fd[Math.min(fd.length-1,i*step)]/255,bx=pB[i*3],by=pB[i*3+1],bz=pB[i*3+2],sc2=1+fv*.4+bs*.06+bP*.07,sw=t*.1*fv,cs=Math.cos(sw),ss=Math.sin(sw);pa.setXYZ(i,(bx*cs-bz*ss)*sc2,by*sc2+(fv-.5)*.18,(bx*ss+bz*cs)*sc2);const e=Math.min(1,fv*1.6);ca.setXYZ(i,.72-e*.1,.94-e*.15,.43+e*.25);}pa.needsUpdate=true;ca.needsUpdate=true;}
+function uW(){if(!wfl||!td)return;const wa=wfl.geometry.attributes.position,step=Math.max(1,Math.floor(td.length/wfN));for(let i=0;i<wfN;i++){const wv=td[i*step]/128-1,a=i/wfN*Math.PI*2,r=WRd+wv*.6;wa.setXYZ(i,Math.cos(a)*r,wv*.36,Math.sin(a)*r);}wa.needsUpdate=true;}
+function loop(){requestAnimationFrame(loop);if(!rdy)return;const t=clk.getElapsedTime();if(live&&an&&ac&&ac.state==='running'){an.getByteFrequencyData(fd);try{if(td)an.getByteTimeDomainData(td);}catch(e){}const v=BD.map(([lo,hi])=>avB(lo,hi)),sp=.2;bs=bs*(1-sp)+v[1]*sp;ms=ms*(1-sp)+v[3]*sp;hs=hs*(1-sp)+v[4]*sp;as=as*(1-sp)+v[5]*sp;en=en*.88+(v[0]+v[1]+v[2]+v[3]+v[4])*.04;const _e=v[0]+v[1];bH[bIdx%40]=_e;bIdx++;{let _a=0;for(let i=0;i<40;i++)_a+=bH[i];_a/=40;if(_e>_a*1.45&&_e>.08&&performance.now()-lB>220){lB=performance.now();bP=1;}}ll.intensity=2.5+bs*9;bl.intensity=1.5+hs*5;pl.intensity=1+ms*4;sM.emissive.copy(dC.clone().lerp(lC,bs*1.6).lerp(tC,ms*.8));sM.emissiveIntensity=.5+en*1.4+bP*.5;wM.opacity=.1+hs*.55;cam.fov=60+bs*8;cam.updateProjectionMatrix();uS(fd);uP(t);uW();}else{bs=(Math.sin(t*.6)+1)*.06;ms=(Math.sin(t*1.2)+1)*.04;hs=(Math.sin(t*2.1)+1)*.02;as=.01;en=bs;sM.emissiveIntensity=.6+Math.sin(t*.5)*.2;}bP*=.87;deform(bs,ms,hs,as,live?fd:null);if(!drag)ty+=.004;tx+=(Math.sin(t*.15)*.12-tx)*.03;cx+=(tx-cx)*.07;cy+=(ty-cy)*.07;sph.rotation.x=cx;sph.rotation.y=cy;if(spk){spk.rotation.x=cx;spk.rotation.y=cy;}if(pts)pts.rotation.y=t*.04;if(wfl){wfl.rotation.y=cy;wfl.material.opacity=live?.38+hs*.22:.1;}const bp=1+bP*.3;r1.rotation.z=t*.18+bs*.5;r1.rotation.x=Math.PI/2+Math.sin(t*.3)*.2+ms*.3;r1.scale.setScalar((1+bs*.3)*bp);r2.rotation.y=t*.22;r2.rotation.x=Math.PI/3+hs*.4;r2.scale.setScalar((1+ms*.22)*bp);r3.rotation.z=-t*.14;r3.rotation.y=t*.09+as;r3.scale.setScalar(1+hs*.15+bP*.2);ren.render(sc,cam);}
+function mkAC(){if(ac)return;ac=new(window.AudioContext||window.webkitAudioContext)();an=ac.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=.72;an.minDecibels=-90;an.maxDecibels=-10;fd=new Uint8Array(an.frequencyBinCount);td=new Uint8Array(an.fftSize);an.connect(ac.destination);const ub=ac.createBuffer(1,1,22050),us=ac.createBufferSource();us.buffer=ub;us.connect(ac.destination);us.start(0);}
+window.mfStop=function(){if(!sn)return;const btn=ge('mf-pp');if(live){ac.suspend();live=0;btn.textContent='▶ Resume';}else{ac.resume();live=1;btn.textContent='⏸ Pause';}};
+window.mfNew=function(){if(sn){try{sn.stop();}catch(x){}sn.disconnect();}live=0;ge('mf-pp').textContent='⏸ Pause';ge('mff').value='';ge('mff').click();};
+document.querySelector('label[for="mff"]').addEventListener('touchstart',function(){try{mkAC();ac&&ac.resume();}catch(e){}},{passive:true});
+ge('mff').addEventListener('change',function(){const f=this.files[0];if(!f)return;mkAC();ac.resume();const pw=ge('mf-pw'),pb=ge('mf-pb'),st=ge('mf-st');pw.style.display='block';pb.style.width='0%';st.style.color='rgba(184,240,110,.38)';st.textContent='Reading file…';const rd=new FileReader();rd.onprogress=e=>{if(e.lengthComputable)pb.style.width=(e.loaded/e.total*62)+'%';};rd.onload=e=>{pb.style.width='75%';st.textContent='Decoding audio…';ac.decodeAudioData(e.target.result.slice(0),buf=>{pb.style.width='100%';if(sn){try{sn.stop();}catch(x){}sn.disconnect();}sn=ac.createBufferSource();sn.buffer=buf;sn.loop=true;sn.connect(an);const nm=f.name.replace(/\.[^/.]+$/,'').slice(0,26).toUpperCase();ac.resume().then(()=>{sn.start(0);live=1;ge('mf-pp').textContent='⏸ Pause';ge('mf-trackname').textContent=nm;ge('mf-ctrl').style.display='flex';mfUI.style.opacity='0';setTimeout(()=>{mfUI.style.display='none';},900);setTimeout(()=>{pw.style.display='none';},500);}).catch(()=>{sn.start(0);live=1;});},()=>{st.style.color='#e07a5f';st.textContent='⚠ Decode failed — try MP3 or WAV';pb.style.width='0%';pw.style.display='none';});};rd.onerror=()=>{st.style.color='#e07a5f';st.textContent='⚠ File read error';pw.style.display='none';};rd.readAsArrayBuffer(f);});})();
+</script>
