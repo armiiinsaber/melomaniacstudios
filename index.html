@@ -7,6 +7,10 @@
   <meta name="description" content="Melomaniac Studios — a house for sound. Toronto.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Preload the local three.js module so the fetch overlaps HTML parsing.
+       With cache disabled + throttled network this is the difference between
+       "reveal within ~200 ms" and "reveal after ~1 s". -->
+  <link rel="modulepreload" href="./vendor/three.module.min.js">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -20,7 +24,7 @@
       --hairline: rgba(20,19,16,.14);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; background: var(--paper); }
     body {
       background: var(--paper);
       color: var(--ink);
@@ -34,6 +38,36 @@
     ::selection { background: var(--green); color: var(--ink); }
     a { color: inherit; text-decoration: none; }
     h1, h2, h3, p { text-wrap: balance; }
+
+    /* ── LOADING COVER ─────────────────────────────────────────────
+       Ivory overlay above everything, present from HTML parse. It hides
+       the whole page until either the WebGL piece has its first frame
+       in the backbuffer (body.hero-live) or we've decided to fall back
+       to the static poster (body.hero-poster). No opacity transition —
+       the user never sees a composition swap, only a hard reveal of
+       the finished piece.
+
+       Position: fixed, z-index above everything. Covers the visible
+       area including any letterboxed SVG whitespace. Because html+body
+       are both painted --paper, the "blank ivory moment" is truly
+       blank ivory — no fonts loading in / no partial layout visible. */
+    #loading-cover {
+      position: fixed; inset: 0;
+      background: var(--paper);
+      z-index: 999;
+      pointer-events: none;
+    }
+    body.hero-live #loading-cover,
+    body.hero-poster #loading-cover { display: none; }
+
+    /* Canvas vs poster visibility.
+       Default: canvas is the display (used by hero-live).
+       Poster is only shown when we've decided to fall back —
+       never as a loading state. */
+    .hero-svg { opacity: 0; pointer-events: none; }
+    #hero-canvas { opacity: 1; }
+    body.hero-poster .hero-svg { opacity: 1; }
+    body.hero-poster #hero-canvas { display: none; }
 
     .hero {
       position: relative;
@@ -51,16 +85,6 @@
       width: 100%; height: 100%;
       display: block;
     }
-    .hero-svg {
-      opacity: 1;
-      transition: opacity .9s ease .15s;
-    }
-    #hero-canvas {
-      opacity: 0;
-      transition: opacity .9s ease;
-    }
-    body.webgl-ready .hero-svg { opacity: 0; }
-    body.webgl-ready #hero-canvas { opacity: 1; }
 
     .hero-content {
       position: relative;
@@ -155,16 +179,19 @@
       .hero-content::before { display: none; }
     }
 
+    /* Reduced motion → static SVG poster is the display, canvas never lights up. */
     @media (prefers-reduced-motion: reduce) {
       .hero-scroll .line { animation: none; opacity: .6; }
       html { scroll-behavior: auto; }
-      /* Reduced motion: static SVG poster is the entire display. */
       #hero-canvas { display: none; }
-      .hero-svg { transition: none; }
+      .hero-svg { opacity: 1; }
     }
   </style>
 </head>
 <body>
+  <!-- Loading cover: hides everything until first paint is the finished piece. -->
+  <div id="loading-cover"></div>
+
   <main>
     <section class="hero">
       <div class="hero-stage">
@@ -189,21 +216,17 @@
   </main>
 
   <!--
-    Static SVG poster.
-    Matches the NEW composition — a green particle scatter shaped by the same
-    seeded wave field (frozen at t=0) plus faint concentric hairlines. No stars.
-    So on load: SVG shows the frozen field → WebGL first frame renders (canvas
-    still opacity 0) → crossfade brings the same composition to life. No jump.
-
-    Also the display for prefers-reduced-motion.
+    SVG poster.
+    ONLY shown as (a) no-WebGL / import-failure fallback, (b) reduced-motion.
+    Never as a loading state.
+    Snapshot: emitters just fired (beat 0), rings frozen partway through
+    their first propagation — reads as a still frame from the piece.
   -->
   <script>
   (function buildStaticPoster(){
     const svg = document.getElementById('hero-svg');
     if (!svg) return;
 
-    // Same seed generator + emitter draws as the WebGL side, so both share the
-    // same "wave field snapshot" identity per load.
     const now = new Date();
     const seed = (
       (now.getFullYear() * 366 + now.getMonth() * 31 + now.getDate()) * 1440
@@ -223,42 +246,53 @@
     const INK_FAINT = 'rgba(20,19,16,.20)';
     const GREEN     = '#B8F06E';
 
-    // Same emitter seeding order as the WebGL initHero — snapshot at t=0.
+    // Same emitter seeding order as the WebGL initHero — poster shows a
+    // snapshot with beat rings already in mid-propagation.
     const emitters = [];
     for (let i = 0; i < 3; i++) {
       emitters.push({
         x: rand(-1.8, 1.8),
         y: rand(-1.2, 1.2),
-        z: rand(-0.6, 0.6),   // consumed to keep the seed stream aligned; ignored below
+        z: rand(-0.6, 0.6),   // consumed to keep the seed stream aligned
         omega: rand(1.6, 3.0),
         amp:   rand(0.75, 1.15),
         phase: rand(0, Math.PI * 2),
       });
     }
-    // 2D scalar-field snapshot (drop z for the poster — poster is a plane).
+
+    // Static wavepacket snapshot at a fixed "mid-decay" tau per emitter.
+    // Approximates the WebGL model (beat rings expanding at c=2, gaussian ring).
+    const TAU_SNAPSHOT = 0.45;
+    const C = 2.0;
+    const SIGMA = 0.5;
     function scalarField(x, y) {
       let f = 0;
+      const ringR = C * TAU_SNAPSHOT;
+      const ageEnv = Math.exp(-TAU_SNAPSHOT / 0.32);
       for (const e of emitters) {
         const dx = x - e.x, dy = y - e.y;
         const r = Math.hypot(dx, dy);
-        const k = e.omega * 0.75;
-        f += e.amp * Math.sin(k * r + e.phase) / (1 + r * 0.35);
+        const k = e.omega * 0.5;
+        const distFromRing = r - ringR;
+        const ringEnv = Math.exp(-(distFromRing * distFromRing) / (2 * SIGMA * SIGMA));
+        const phase = k * r - e.omega * TAU_SNAPSHOT + e.phase;
+        f += e.amp * ringEnv * ageEnv * Math.cos(phase) / (1 + r * 0.15);
       }
       return f;
     }
 
-    // Green particle scatter, biased by field magnitude — nodes stay dim, peaks bright.
+    // Green particle scatter — the primary visual.
     const scatter = [];
     const N = 1200;
     for (let i = 0; i < N; i++) {
       let x, y;
       do { x = rand(-3.05, 3.05); y = rand(-3.05, 3.05); }
-      while (x*x + y*y > 8.7);  // r ≤ ~2.95
-      const field = scalarField(x, y);
-      const mag = Math.min(Math.abs(field), 1.4);
-      const gate = Math.max(0, (mag - 0.05) / 0.5);
-      const alpha = 0.15 + 0.78 * Math.min(1, gate);
-      const r = rand(0.011, 0.022);
+      while (x*x + y*y > 8.7);
+      const f = scalarField(x, y);
+      const mag = Math.min(Math.abs(f), 1.5);
+      const gate = Math.max(0, (mag - 0.03) / 0.5);
+      const alpha = 0.14 + 0.80 * Math.min(1, gate);
+      const r = rand(0.010, 0.021);
       const isInk = rng() < 0.08;
       const color = isInk ? INK : GREEN;
       scatter.push(
@@ -267,9 +301,7 @@
     }
 
     svg.innerHTML = [
-      // Field (the star of the poster)
       `<g>${scatter.join('')}</g>`,
-      // Architecture whisper: three faint hairline circles
       `<circle cx="0" cy="0" r="2.85" fill="none" stroke="${INK_FAINT}" stroke-width=".008"/>`,
       `<circle cx="0" cy="0" r="2.05" fill="none" stroke="${INK_FAINT}" stroke-width=".008"/>`,
       `<circle cx="0" cy="0" r="1.35" fill="none" stroke="${INK_FAINT}" stroke-width=".009"/>`,
@@ -278,47 +310,69 @@
   </script>
 
   <!--
-    WebGL piece. Vendored ES module — no third-party CDN at runtime.
-    On failure the SVG poster above stays.
+    WebGL piece. 110 BPM beat clock; every element samples the same
+    shared wave field. Mouse behavior preserved from the previous pass.
 
-    Principle: one shared wave field. Three seeded spherical emitters + mouse-
-    as-emitter + optional Chladni standing wave. Particles read the vector
-    field for displacement and the scalar field for brightness/size. The
-    hairline circles read the same field and gently deform in JS with the
-    same equation, so nothing moves to a private clock.
+    Reveal contract:
+      • Loading cover hides everything from HTML parse.
+      • Module imports three.js (preloaded).
+      • initHero: pre-renders the FIRST FRAME at a pre-advanced clock
+        (so multiple beats already in flight → composition is alive),
+        THEN removes the loading cover in the same task.
+      • Fallback: if module/WebGL fail, or a 3.0 s timeout elapses,
+        the poster is revealed instead. Never a composition swap.
   -->
   <script type="module">
+    const REVEAL_TIMEOUT_MS = 3000;
+
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      // Poster is the display; do not spin up rAF.
+      document.body.classList.add('hero-poster');
     } else {
+      const fallbackTimer = setTimeout(() => {
+        console.warn('[hero] Init timed out — poster fallback.');
+        document.body.classList.add('hero-poster');
+      }, REVEAL_TIMEOUT_MS);
       try {
         const THREE = await import('./vendor/three.module.min.js');
-        initHero(THREE);
+        initHero(THREE, () => {
+          clearTimeout(fallbackTimer);
+          document.body.classList.add('hero-live');
+        });
       } catch (err) {
-        console.warn('[hero] WebGL module unavailable — poster fallback in use.', err);
+        clearTimeout(fallbackTimer);
+        console.warn('[hero] Module unavailable — poster fallback.', err);
+        document.body.classList.add('hero-poster');
       }
     }
 
-    function initHero(THREE) {
+    function initHero(THREE, onFirstFrameReady) {
       const canvas = document.getElementById('hero-canvas');
       let renderer;
       try {
         renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
       } catch (e) {
-        console.warn('[hero] WebGL unavailable — poster fallback in use.', e);
+        console.warn('[hero] WebGL unavailable — poster fallback.', e);
+        document.body.classList.add('hero-poster');
         return;
       }
 
       const INK   = 0x141310;
       const GREEN = 0xB8F06E;
       const PAPER = 0xF5F3EC;
-      const SPEED = 0.80;  // single tempo knob for the whole piece
+
+      // ── The two knobs ────────────────────────────────────────────────
+      // BPM is LOCKED at 110 (the piece is on a sound system).
+      // SPEED scales the wave physics — how long each beat's ring takes
+      // to travel/decay — without changing when beats fire.
+      const BPM = 110;
+      const BEAT_PERIOD = 60 / BPM;   // 0.5454545 s
+      const SPEED = 0.80;
 
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setClearColor(PAPER, 1);
       const pixelRatio = renderer.getPixelRatio();
 
-      // ---- seeded RNG (mulberry32) ----
+      // ── Seeded RNG (mulberry32) ─────────────────────────────────────
       const now = new Date();
       const seed = (
         (now.getFullYear() * 366 + now.getMonth() * 31 + now.getDate()) * 1440
@@ -341,13 +395,7 @@
       const assembly = new THREE.Group();
       scene.add(assembly);
 
-      // ============================================================
-      // SHARED WAVE FIELD
-      //   Three stationary emitters (seeded per load).
-      //   Each contributes a spherical wave: u_i = A_i · sin(k·r − ω·t + φ) / (1 + α·r)
-      //   Superposition is linear → real interference (peaks add, opposite phases cancel).
-      //   c = ω / k = 1 / 0.75 ≈ 1.33 (units per second in slow-time T).
-      // ============================================================
+      // ── Emitters (seeded, stationary) ────────────────────────────────
       const emitters = [];
       for (let i = 0; i < 3; i++) {
         emitters.push({
@@ -358,23 +406,17 @@
         });
       }
 
-      // Chladni standing wave — nodal pattern that quietly rises and recedes.
+      // Chladni background pattern — quiet standing wave that rises/recedes
+      // over minutes so nodal grids emerge and dissolve underneath the beats.
       const chladniKx = rand(1.4, 2.8);
       const chladniKy = rand(1.4, 2.8);
 
-      // Mouse-as-emitter — persistent 4th source whose amplitude is fed by cursor
-      // motion and decays when idle. Phase reference shared with the base emitters,
-      // so it INTERFERES with them cleanly (not just sits on top).
+      // Mouse-as-emitter (kept exactly as in the previous pass).
       const mouseLocal = new THREE.Vector3(999, 999, 999);
       let mouseAmp = 0.0;
       const mouseFreq = rand(2.2, 3.4);
 
-      // ============================================================
-      // FLUID PARTICLES — the star of the piece.
-      //   Reads the same wave field. Displaces along vector field,
-      //   brightness/size along |scalar field|.
-      //   Print-dot scale, mostly green, ink minority for depth.
-      // ============================================================
+      // ── Fluid particles ──────────────────────────────────────────────
       function chooseCount(w) {
         if (w >= 1400) return 7000;
         if (w >= 1000) return 5000;
@@ -391,7 +433,6 @@
       const inkC = new THREE.Color(INK);
 
       for (let i = 0; i < N; i++) {
-        // Uniform in a disc (sqrt-sampled radius → no clumping at center), slight z spread.
         const r  = Math.sqrt(rng()) * 3.05;
         const th = rng() * Math.PI * 2;
         pos[i*3]   = Math.cos(th) * r;
@@ -399,10 +440,9 @@
         pos[i*3+2] = (rng() - 0.5) * 0.9;
         sizeA[i]  = rand(0.55, 1.1);
         alphaA[i] = rand(0.45, 0.95);
-        // ~92% green, ~8% ink
         const isInk = rng() < 0.08;
         const c = isInk ? inkC : gr;
-        col[i*3]   = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
+        col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
       }
 
       const fluidGeom = new THREE.BufferGeometry();
@@ -411,24 +451,33 @@
       fluidGeom.setAttribute('aSize',    new THREE.BufferAttribute(sizeA, 1));
       fluidGeom.setAttribute('aAlpha',   new THREE.BufferAttribute(alphaA, 1));
 
+      // ── Vertex shader: BEAT-DRIVEN WAVE FIELD ────────────────────────
+      // Each beat, every emitter fires a WAVEPACKET — a Gaussian-enveloped
+      // ring propagating at c = 2 and decaying with tau_env ≈ 0.32 s. We
+      // track the 3 most recent beat times so up to 3 concentric rings from
+      // each emitter are in flight simultaneously. Between beats, energy
+      // decays → the field visibly settles toward rest. Downbeats (every 4th
+      // beat) fire louder. Mouse layered on top as a continuous emitter.
       const FLUID_VS = /* glsl */`
         precision highp float;
-        uniform float uTime;
+        uniform float uTime;             // effective time (real clock, pre-advanced on load)
+        uniform float uSpeedScale;       // SPEED — scales physics tau
         uniform float uPixelRatio;
         uniform float uSizeBase;
+        uniform float uKickBoost;        // 0 at rest, up to ~0.30 at beat peak
 
-        // Emitter uniforms — three vec3 positions + packed (omega, amp, phase) triples.
         uniform vec3  uE0Pos;  uniform vec3  uE1Pos;  uniform vec3  uE2Pos;
-        uniform vec3  uEOmegas;  // (omega0, omega1, omega2)
-        uniform vec3  uEAmps;    // (amp0,   amp1,   amp2)
-        uniform vec3  uEPhases;  // (phase0, phase1, phase2)
+        uniform vec3  uEOmegas;
+        uniform vec3  uEAmps;
+        uniform vec3  uEPhases;
 
-        // Mouse-as-emitter
+        uniform vec3  uBeatTimes;        // (t_beat_-0, t_beat_-1, t_beat_-2) most recent → oldest
+        uniform vec3  uBeatAmps;         // matching per-beat amplitude (downbeat accent)
+
         uniform vec3  uMousePos;
         uniform float uMouseAmp;
         uniform float uMouseFreq;
 
-        // Standing wave
         uniform vec2  uChladniK;
         uniform float uChladniAmp;
 
@@ -439,60 +488,102 @@
         varying vec3  vColor;
         varying float vAlpha;
 
-        // Spherical wave contribution.
-        // Returns .xyz = vector displacement (dir·u), .w = scalar amplitude u.
-        //   u = A · sin(k·r − ω·t + φ) / (1 + α·r)
-        vec4 wave(vec3 p, vec3 e, float omega, float amp, float phase, float t) {
-          vec3 d = p - e;
-          float r = length(d);
-          vec3 dir = d / max(r, 0.001);
+        // Scalar contribution of one beat from one emitter.
+        // Returned as vec2(u, one_over_falloff) so we can compute vector
+        // contribution outside by multiplying by dir once.
+        //   u = amp · beatAmp · ringEnv · ageEnv · cos(k·r − ω·τ + φ) / (1 + α·r)
+        //     ringEnv = exp(−(r − c·τ)² / 2σ²),  σ = 0.5, c = 2
+        //     ageEnv  = exp(−τ / 0.32)
+        //   Returns 0 if the beat hasn't fired yet (bt < 0 sentinel).
+        float beatContrib(float r, float omega, float phase, float amp,
+                          float beatTime, float beatAmp, float t) {
+          if (beatTime < 0.0) return 0.0;
+          float tau = (t - beatTime) * uSpeedScale;
+          if (tau <= 0.0) return 0.0;
+          float k = omega * 0.5;         // c = ω/k = 2
+          float ringR = 2.0 * tau;
+          float distFromRing = r - ringR;
+          float ringEnv = exp(-(distFromRing * distFromRing) / 0.5);   // 2·σ² with σ=0.5
+          float ageEnv  = exp(-tau / 0.32);
+          float ph = k * r - omega * tau + phase;
+          return amp * beatAmp * ringEnv * ageEnv * cos(ph) / (1.0 + r * 0.15);
+        }
+
+        // Continuous sinusoidal wave (used only by the mouse emitter — its
+        // ripple-and-decay behavior is preserved verbatim from the last pass).
+        float continuousContrib(float r, float omega, float amp, float t) {
           float k = omega * 0.75;
-          float u = amp * sin(k * r - omega * t + phase) / (1.0 + r * 0.35);
-          return vec4(dir * u, u);
+          float tS = t * uSpeedScale;
+          return amp * sin(k * r - omega * tS) / (1.0 + r * 0.35);
         }
 
         void main() {
           vec3 basePos = position;
-          vec3  vecField    = vec3(0.0);
-          float scalarField = 0.0;
 
-          // Three stationary emitters — superposition is real interference.
-          vec4 w0 = wave(basePos, uE0Pos, uEOmegas.x, uEAmps.x, uEPhases.x, uTime);
-          vec4 w1 = wave(basePos, uE1Pos, uEOmegas.y, uEAmps.y, uEPhases.y, uTime);
-          vec4 w2 = wave(basePos, uE2Pos, uEOmegas.z, uEAmps.z, uEPhases.z, uTime);
-          vecField    += w0.xyz + w1.xyz + w2.xyz;
-          scalarField += w0.w   + w1.w   + w2.w;
+          // Emitter 0
+          vec3  d0   = basePos - uE0Pos;
+          float r0   = length(d0);
+          vec3  dir0 = d0 / max(r0, 0.001);
+          float u00  = beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.x, uBeatAmps.x, uTime);
+          float u01  = beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.y, uBeatAmps.y, uTime);
+          float u02  = beatContrib(r0, uEOmegas.x, uEPhases.x, uEAmps.x, uBeatTimes.z, uBeatAmps.z, uTime);
+          float uE0  = u00 + u01 + u02;
 
-          // Cursor emitter — same time reference so it INTERFERES with the base field.
+          // Emitter 1
+          vec3  d1   = basePos - uE1Pos;
+          float r1   = length(d1);
+          vec3  dir1 = d1 / max(r1, 0.001);
+          float u10  = beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.x, uBeatAmps.x, uTime);
+          float u11  = beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.y, uBeatAmps.y, uTime);
+          float u12  = beatContrib(r1, uEOmegas.y, uEPhases.y, uEAmps.y, uBeatTimes.z, uBeatAmps.z, uTime);
+          float uE1  = u10 + u11 + u12;
+
+          // Emitter 2
+          vec3  d2   = basePos - uE2Pos;
+          float r2   = length(d2);
+          vec3  dir2 = d2 / max(r2, 0.001);
+          float u20  = beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.x, uBeatAmps.x, uTime);
+          float u21  = beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.y, uBeatAmps.y, uTime);
+          float u22  = beatContrib(r2, uEOmegas.z, uEPhases.z, uEAmps.z, uBeatTimes.z, uBeatAmps.z, uTime);
+          float uE2  = u20 + u21 + u22;
+
+          vec3  vecField    = dir0 * uE0 + dir1 * uE1 + dir2 * uE2;
+          float scalarField = uE0 + uE1 + uE2;
+
+          // Mouse: continuous sinusoidal source, same time reference as beats
+          // so it INTERFERES with the beat field cleanly.
           if (uMouseAmp > 0.001) {
-            vec4 wm = wave(basePos, uMousePos, uMouseFreq, uMouseAmp, 0.0, uTime);
-            vecField    += wm.xyz;
-            scalarField += wm.w;
+            vec3  dm   = basePos - uMousePos;
+            float rm   = length(dm);
+            vec3  dirm = dm / max(rm, 0.001);
+            float um   = continuousContrib(rm, uMouseFreq, uMouseAmp, uTime);
+            vecField    += dirm * um;
+            scalarField += um;
           }
 
-          // 2-D Chladni standing wave — nodal grid where sin·sin = 0.
+          // Chladni standing wave — quiet background nodal pattern.
           float chladni = uChladniAmp * sin(uChladniK.x * basePos.x) * sin(uChladniK.y * basePos.y);
           scalarField += chladni;
           vecField.z  += chladni * 0.35;
 
-          // Displace along the vector field. Magnitude tuned so interference is visible
-          // as bands of motion, but particles don't fling out of frame.
-          vec3 displaced = basePos + vecField * 0.36;
+          // Displace along the vector field. Amplitude scaled so beats push
+          // particles visibly on the hit and let them settle back between.
+          vec3 displaced = basePos + vecField * 0.55;
 
           vec4 mvPosition = modelViewMatrix * vec4(displaced, 1.0);
           gl_Position = projectionMatrix * mvPosition;
 
-          // Brightness/size from |scalar field| → wavefronts and interference bands
-          // read as bright and dim regions moving through the cloud.
-          float mag  = min(abs(scalarField), 1.4);
-          float gate = smoothstep(0.05, 0.55, mag);
-          float szm  = 0.55 + 0.85 * gate;
+          // Brightness/size from |scalar field| — wavefronts as visible bands
+          // sweeping through the cloud. uKickBoost adds a transient "hit"
+          // globally on each beat (bigger on downbeats).
+          float mag  = min(abs(scalarField), 1.6);
+          float gate = smoothstep(0.03, 0.55, mag);
+          float szm  = (0.55 + 0.90 * gate) * (1.0 + uKickBoost * 0.40);
 
-          // Print-dot scale — much smaller than the previous pass.
           gl_PointSize = uSizeBase * aSize * szm * uPixelRatio * (22.0 / max(-mvPosition.z, 0.1));
 
           vColor = aColor;
-          vAlpha = aAlpha * (0.16 + 0.86 * gate);
+          vAlpha = aAlpha * (0.14 + 0.90 * gate) * (1.0 + uKickBoost * 0.50);
         }
       `;
 
@@ -503,7 +594,6 @@
         void main() {
           vec2 uv = gl_PointCoord - 0.5;
           float d2 = dot(uv, uv);
-          // Sharp print-like disc, no glow.
           float a = smoothstep(0.24, 0.19, d2);
           if (a <= 0.001) discard;
           gl_FragColor = vec4(vColor, a * vAlpha);
@@ -512,37 +602,37 @@
 
       const fluidMat = new THREE.ShaderMaterial({
         uniforms: {
-          uTime:       { value: 0 },
-          uPixelRatio: { value: pixelRatio },
-          uSizeBase:   { value: 1.0 },
-          uE0Pos:      { value: emitters[0].pos },
-          uE1Pos:      { value: emitters[1].pos },
-          uE2Pos:      { value: emitters[2].pos },
-          uEOmegas:    { value: new THREE.Vector3(emitters[0].omega, emitters[1].omega, emitters[2].omega) },
-          uEAmps:      { value: new THREE.Vector3(emitters[0].amp,   emitters[1].amp,   emitters[2].amp) },
-          uEPhases:    { value: new THREE.Vector3(emitters[0].phase, emitters[1].phase, emitters[2].phase) },
-          uMousePos:   { value: mouseLocal },
-          uMouseAmp:   { value: 0 },
-          uMouseFreq:  { value: mouseFreq },
-          uChladniK:   { value: new THREE.Vector2(chladniKx, chladniKy) },
-          uChladniAmp: { value: 0 },
+          uTime:        { value: 0 },
+          uSpeedScale:  { value: SPEED },
+          uPixelRatio:  { value: pixelRatio },
+          uSizeBase:    { value: 1.0 },
+          uKickBoost:   { value: 0 },
+          uE0Pos:       { value: emitters[0].pos },
+          uE1Pos:       { value: emitters[1].pos },
+          uE2Pos:       { value: emitters[2].pos },
+          uEOmegas:     { value: new THREE.Vector3(emitters[0].omega, emitters[1].omega, emitters[2].omega) },
+          uEAmps:       { value: new THREE.Vector3(emitters[0].amp,   emitters[1].amp,   emitters[2].amp) },
+          uEPhases:     { value: new THREE.Vector3(emitters[0].phase, emitters[1].phase, emitters[2].phase) },
+          uBeatTimes:   { value: new THREE.Vector3(-1, -1, -1) },
+          uBeatAmps:    { value: new THREE.Vector3( 0,  0,  0) },
+          uMousePos:    { value: mouseLocal },
+          uMouseAmp:    { value: 0 },
+          uMouseFreq:   { value: mouseFreq },
+          uChladniK:    { value: new THREE.Vector2(chladniKx, chladniKy) },
+          uChladniAmp:  { value: 0 },
         },
         vertexShader: FLUID_VS,
         fragmentShader: FLUID_FS,
         transparent: true,
         depthWrite: false,
         depthTest:  true,
-        blending:   THREE.NormalBlending,   // NEVER additive on ivory
+        blending:   THREE.NormalBlending,
       });
 
       const fluid = new THREE.Points(fluidGeom, fluidMat);
       assembly.add(fluid);
 
-      // ============================================================
-      // ARCHITECTURE WHISPER — three faint hairline circles.
-      //   Same wave field: JS mirrors the shader math so lines and particles
-      //   move to the SAME music.
-      // ============================================================
+      // ── Architecture whisper: 3 hairline circles that sample the same field ──
       function makeCircle(radiusBase, colorHex, opacity, z, segments=128) {
         const positions = new Float32Array(segments * 3);
         for (let i = 0; i < segments; i++) {
@@ -567,28 +657,43 @@
       ];
       circles.forEach(c => assembly.add(c));
 
-      // Mirror of the shader's scalar field, in JS, so circle deform stays coherent.
-      function scalarFieldJS(bx, by, bz, T) {
+      // JS mirror of one beat's scalar contribution (matches shader beatContrib).
+      function beatContribJS(r, omega, phase, amp, beatTime, beatAmp, t) {
+        if (beatTime < 0) return 0;
+        const tau = (t - beatTime) * SPEED;
+        if (tau <= 0) return 0;
+        const k = omega * 0.5;
+        const ringR = 2.0 * tau;
+        const distFromRing = r - ringR;
+        const ringEnv = Math.exp(-(distFromRing * distFromRing) / 0.5);
+        const ageEnv  = Math.exp(-tau / 0.32);
+        const ph = k * r - omega * tau + phase;
+        return amp * beatAmp * ringEnv * ageEnv * Math.cos(ph) / (1 + r * 0.15);
+      }
+      // JS mirror of full scalar field. Used by circle deform.
+      function scalarFieldJS(bx, by, bz, T, beatTimes, beatAmps) {
         let f = 0;
         for (let j = 0; j < 3; j++) {
           const e = emitters[j];
           const dx = bx - e.pos.x, dy = by - e.pos.y, dz = bz - e.pos.z;
           const r  = Math.sqrt(dx*dx + dy*dy + dz*dz);
-          const k  = e.omega * 0.75;
-          f += e.amp * Math.sin(k * r - e.omega * T + e.phase) / (1 + r * 0.35);
+          f += beatContribJS(r, e.omega, e.phase, e.amp, beatTimes[0], beatAmps[0], T);
+          f += beatContribJS(r, e.omega, e.phase, e.amp, beatTimes[1], beatAmps[1], T);
+          f += beatContribJS(r, e.omega, e.phase, e.amp, beatTimes[2], beatAmps[2], T);
         }
         if (mouseAmp > 0.001) {
           const dx = bx - mouseLocal.x, dy = by - mouseLocal.y, dz = bz - mouseLocal.z;
           const r  = Math.sqrt(dx*dx + dy*dy + dz*dz);
           const k  = mouseFreq * 0.75;
-          f += mouseAmp * Math.sin(k * r - mouseFreq * T) / (1 + r * 0.35);
+          const tS = T * SPEED;
+          f += mouseAmp * Math.sin(k * r - mouseFreq * tS) / (1 + r * 0.35);
         }
         const chAmp = fluidMat.uniforms.uChladniAmp.value;
         f += chAmp * Math.sin(chladniKx * bx) * Math.sin(chladniKy * by);
         return f;
       }
 
-      function deformCircles(T) {
+      function deformCircles(T, beatTimes, beatAmps) {
         for (const c of circles) {
           const posAttr = c.geometry.attributes.position;
           const base = c.userData.basePositions;
@@ -598,8 +703,8 @@
             const bx = base[i*3];
             const by = base[i*3+1];
             const bz = base[i*3+2];
-            const f = scalarFieldJS(bx, by, bz, T);
-            const dispR = f * 0.07;   // subtle radial breathe
+            const f = scalarFieldJS(bx, by, bz, T, beatTimes, beatAmps);
+            const dispR = f * 0.08;
             const n2 = bx*bx + by*by;
             if (n2 > 1e-4) {
               const inv = 1 / Math.sqrt(n2);
@@ -609,13 +714,13 @@
               arr[i*3]   = bx;
               arr[i*3+1] = by;
             }
-            arr[i*3+2] = bz + f * 0.022;
+            arr[i*3+2] = bz + f * 0.028;
           }
           posAttr.needsUpdate = true;
         }
       }
 
-      // Sculptural base tilt + per-load starting angle
+      // ── Camera / composition ─────────────────────────────────────────
       const baseTiltX = 0.28;
       assembly.rotation.x = baseTiltX;
       assembly.rotation.z = rng() * Math.PI * 2;
@@ -636,17 +741,11 @@
       resize();
       window.addEventListener('resize', resize);
 
-      // ============================================================
-      // MOUSE = EMITTER (not magnet)
-      //   Cursor position → world plane at z=0 → assembly-local space.
-      //   Amplitude is fed by motion, decays when idle. No assembly rotation
-      //   response; interaction lives inside the physics, not on the transform.
-      // ============================================================
+      // ── Mouse-as-emitter (unchanged behavior) ────────────────────────
       const raycaster = new THREE.Raycaster();
       const mouseNDC  = new THREE.Vector2();
       const _tmpWorld = new THREE.Vector3();
       const _plane    = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-
       let pendingPointer = null;
       window.addEventListener('pointermove', (e) => {
         pendingPointer = { x: e.clientX, y: e.clientY };
@@ -656,7 +755,6 @@
           pendingPointer = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         }
       }, { passive: true });
-
       function pumpPointer() {
         if (!pendingPointer) return;
         mouseNDC.x =  (pendingPointer.x / window.innerWidth)  * 2 - 1;
@@ -667,62 +765,86 @@
           assembly.worldToLocal(clone);
           mouseLocal.copy(clone);
           fluidMat.uniforms.uMousePos.value.copy(mouseLocal);
-          // Fresh motion → hold amplitude at 1. Idle → let it decay in tick().
           mouseAmp = 1.0;
         }
         pendingPointer = null;
       }
 
-      // ============================================================
-      // TICK
-      // ============================================================
-      const clock = new THREE.Clock();
-      let ready = false;
+      // ── Beat clock ───────────────────────────────────────────────────
+      const beatTimesArr = [-1, -1, -1];
+      const beatAmpsArr  = [ 0,  0,  0];
+      function updateBeatState(T) {
+        const idx = Math.floor(T / BEAT_PERIOD);
+        for (let k = 0; k < 3; k++) {
+          const bi = idx - k;
+          if (bi >= 0) {
+            beatTimesArr[k] = bi * BEAT_PERIOD;
+            // Downbeat every 4th beat (bar structure): index 0, 4, 8, …
+            beatAmpsArr[k]  = (bi % 4 === 0) ? 1.35 : 0.85;
+          } else {
+            beatTimesArr[k] = -1;
+            beatAmpsArr[k]  = 0;
+          }
+        }
+        fluidMat.uniforms.uBeatTimes.value.set(beatTimesArr[0], beatTimesArr[1], beatTimesArr[2]);
+        fluidMat.uniforms.uBeatAmps.value.set(beatAmpsArr[0],   beatAmpsArr[1],   beatAmpsArr[2]);
 
-      function tick() {
-        const t = clock.getElapsedTime();
-        const T = t * SPEED;
+        // Kick envelope for global size/brightness modulation.
+        // Attack ~30 ms → exponential decay ~300 ms, all in effective time.
+        const tau0 = (T - beatTimesArr[0]) * SPEED;
+        const attack = Math.min(tau0 / 0.030, 1.0);
+        const decay  = Math.exp(-Math.max(0, tau0 - 0.030) / 0.30);
+        const isDown = beatAmpsArr[0] > 1.0;
+        const peak   = isDown ? 0.30 : 0.18;
+        fluidMat.uniforms.uKickBoost.value = attack * decay * peak;
 
-        // 1. Update assembly transform first so worldToLocal in pumpPointer uses the current frame.
-        const driftY = Math.sin(T * 0.075) * 0.22;
-        const driftX = Math.sin(T * 0.11)  * 0.05;
+        // Chladni amplitude — very slow rise/recede over minutes.
+        fluidMat.uniforms.uChladniAmp.value = 0.10 * (0.5 + 0.5 * Math.sin(T * SPEED * 0.035));
+      }
+
+      // ── Pre-advance the clock so the FIRST FRAME shows the piece already ──
+      // alive — several beats already fired, rings mid-flight. Without this,
+      // the very first render happens at T=0 with no waves in the field yet.
+      const CLOCK_PREADVANCE = BEAT_PERIOD * 2 + 0.10;   // ~1.19 s
+      const clock = new THREE.Clock(false);
+      function currentT() { return clock.getElapsedTime() + CLOCK_PREADVANCE; }
+
+      function frame(T) {
+        // Assembly drift stays extremely subtle — the beat is the primary motion.
+        const driftY = Math.sin(T * SPEED * 0.075) * 0.18;
+        const driftX = Math.sin(T * SPEED * 0.11)  * 0.045;
         assembly.rotation.y = driftY;
         assembly.rotation.x = baseTiltX + driftX;
         assembly.updateMatrixWorld(true);
 
-        // 2. Absorb pending cursor motion → mouse emitter local pos + amplitude bump.
         pumpPointer();
-
-        // 3. Amplitude decay (frame-rate assumed ≈ 60 → ~2s to fade). If it's uneven,
-        //    the physics still works; just the fade timing wobbles.
         mouseAmp *= 0.985;
         if (mouseAmp < 0.001) mouseAmp = 0;
         fluidMat.uniforms.uMouseAmp.value = mouseAmp;
 
-        // 4. Standing-wave amplitude: very slow rise and recede over ~180 s so
-        //    nodal patterns emerge and dissolve, never stuck.
-        fluidMat.uniforms.uChladniAmp.value = 0.20 * (0.5 + 0.5 * Math.sin(T * 0.035));
-
-        // 5. Fluid time uniform — drives the whole wave field.
+        updateBeatState(T);
         fluidMat.uniforms.uTime.value = T;
 
-        // 6. Circles: sample the same field and deform.
-        deformCircles(T);
+        deformCircles(T, beatTimesArr, beatAmpsArr);
 
-        // 7. Render. First frame = still opacity 0 on canvas → then trigger crossfade.
         renderer.render(scene, camera);
+      }
 
-        if (!ready) {
-          ready = true;
-          // Double-rAF: guarantees the first frame is presented before the CSS
-          // transition kicks in, so the crossfade shows animation, not a pop.
-          requestAnimationFrame(() =>
-            requestAnimationFrame(() => document.body.classList.add('webgl-ready'))
-          );
-        }
+      // ── First-paint contract ─────────────────────────────────────────
+      // Render the first FULL frame at T = CLOCK_PREADVANCE (multiple beats
+      // already in the field), then reveal — synchronously in the same task,
+      // so the very first paint the user sees IS this frame.
+      const T0 = CLOCK_PREADVANCE;
+      frame(T0);
+      onFirstFrameReady();
+
+      // Now start the real clock and enter the rAF loop.
+      clock.start();
+      function tick() {
+        frame(currentT());
         requestAnimationFrame(tick);
       }
-      tick();
+      requestAnimationFrame(tick);
     }
   </script>
 </body>

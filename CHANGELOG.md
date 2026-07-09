@@ -125,6 +125,55 @@ All notable changes to the Melomaniac Studios site rebuild.
   timing), seeded per-load variation, reduced-motion → SVG poster only,
   60 fps particle-count tiers.
 
+### Rebuilt — hero, fifth pass (110-BPM beat physics + first-paint contract)
+- **First paint is now the finished composition.** The load-then-swap flow
+  is gone. New contract:
+  - `<link rel="modulepreload" href="./vendor/three.module.min.js">` in
+    `<head>` overlaps the module fetch with HTML parsing.
+  - `<div id="loading-cover">` is an ivory overlay at `z-index: 999` that
+    covers the entire viewport from HTML parse. `html` and `body` also
+    paint `--paper` so the blank moment is truly blank ivory — no font
+    swap, no partial layout, no poster peek.
+  - `initHero` **pre-renders the first full frame in the same task** as
+    the reveal: `frame(T0)` → `onFirstFrameReady()`. The cover is removed
+    on the same paint that lands the finished composition on screen.
+    No opacity transition anywhere on the swap — it's a hard reveal.
+  - Poster is now the FALLBACK only (WebGL init throws / module import
+    fails / 3 s timeout hits) and the reduced-motion display. Never a
+    loading state.
+  - The clock is **pre-advanced** by `2 · BEAT_PERIOD + 0.1 s ≈ 1.19 s`
+    before that first render, so several beats are already in flight when
+    the page first paints — the piece is already alive.
+- **110 BPM beat physics.** The wave field is now beat-driven, on a real-
+  time clock (BPM locked; SPEED only scales physics tau).
+  - `BEAT_PERIOD = 60 / 110 ≈ 545.45 ms`.
+  - Each beat, every emitter fires a **wavepacket**: a Gaussian ring
+    `exp(−(r − c·τ)² / 2σ²) · cos(k·r − ω·τ + φ) · exp(−τ / 0.32)` at
+    `c = 2`, `σ = 0.5`. Three most recent beats are tracked as uniforms
+    (`uBeatTimes`, `uBeatAmps`), so up to three concentric rings per
+    emitter are in flight simultaneously. Between beats no new energy
+    is added — the field decays toward rest, then re-energizes on the
+    next hit. Pulse/rest contrast reads like a physical speaker cone.
+  - **4-beat bar structure.** Every 4th beat (indices 0, 4, 8, …) is the
+    downbeat, amplitude `1.35`; other beats `0.85`. About a 1.6× ratio,
+    audible without being cartoonish.
+  - **Global kick envelope** (attack ~30 ms, exponential decay ~300 ms)
+    modulates particle size (`+0.4×` peak) and alpha (`+0.5×` peak) on
+    every hit — the transient "hit" the user asked for. Downbeats peak
+    at `0.30`, others `0.18`.
+- **Mouse layered on top unchanged.** Still a continuous sinusoidal
+  emitter with amplitude fed by motion, `0.985` per-frame idle decay.
+  Same time reference as the base field so it INTERFERES with the beat
+  waves cleanly.
+- **Circles keep sampling the field.** JS mirror `beatContribJS` mirrors
+  the shader beat contribution exactly; circle vertices deform against
+  the same 3-beat superposition each frame.
+- **SPEED knob** still scales physics tau (propagation speed, ring decay,
+  Chladni amplitude drift, kick envelope width, assembly drift) — the
+  "decay/travel feel" knob. BPM stays at 110.
+- **Chladni** kept as background pattern at reduced amplitude (0.10 peak
+  vs 0.20 before) — subtle nodal grid underneath the beats.
+
 ### Pending review
 - Serving locally at http://127.0.0.1:4200 — awaiting founder approval on
   the moving piece before styling any other section (per DESIGN.md §7).
