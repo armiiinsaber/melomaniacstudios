@@ -377,15 +377,19 @@
       transform-origin: center;
       transition: transform .55s ease;
     }
-    .labs-index-row.is-active .labs-name-link,
-    .labs-name-link:hover,
-    .labs-name-link:focus-visible {
+    /* .is-active is the SOLE source of truth for the selected visual.
+       Hover styles below are gated behind (hover: hover) so sticky
+       :hover on touch devices can't create a second highlighted row
+       alongside the JS-set .is-active. */
+    .labs-index-row.is-active .labs-name-link {
       padding-left: 1.1rem;
     }
-    .labs-index-row.is-active .labs-name-link::before,
-    .labs-name-link:hover::before,
-    .labs-name-link:focus-visible::before {
+    .labs-index-row.is-active .labs-name-link::before {
       transform: scaleY(1);
+    }
+    @media (hover: hover) {
+      .labs-name-link:hover { padding-left: 1.1rem; }
+      .labs-name-link:hover::before { transform: scaleY(1); }
     }
     .labs-name {
       font-family: var(--house-serif);
@@ -412,9 +416,18 @@
       opacity: .55;
       transition: opacity .55s ease;
     }
-    .labs-index-row.is-active .labs-cta-mini,
-    .labs-name-link:hover .labs-cta-mini,
-    .labs-name-link:focus-visible .labs-cta-mini { opacity: 1; }
+    .labs-index-row.is-active .labs-cta-mini { opacity: 1; }
+    @media (hover: hover) {
+      .labs-name-link:hover .labs-cta-mini { opacity: 1; }
+    }
+    /* Touch: enlarge the LAUNCH tap target on the active row — it's the
+       only element that navigates, so it needs a real hit area. */
+    @media (hover: none) {
+      .labs-index-row.is-active .labs-cta-mini {
+        padding: .5rem 0;
+        margin-top: .55rem;
+      }
+    }
     .labs-cta-arrow {
       font-family: var(--house-serif);
       font-variation-settings: 'opsz' 24, 'wght' 300, var(--house-serif-mods);
@@ -457,12 +470,20 @@
     @media (max-width: 900px) {
       .labs-grid {
         grid-template-columns: 1fr;
-        gap: 2rem;
+        gap: 1.5rem;
       }
+      /* Preview leads the stack AND sticks to the top of the viewport so
+         tapping a name below always updates something already in view —
+         no scroll hunt after selection. */
       .labs-preview {
-        order: 2;
-        min-height: 20rem;
+        order: -1;
+        min-height: 17rem;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: var(--green);
       }
+      .labs-index { order: 1; }
     }
 
     /* ═══════════════════════════════════════════════════════════════════
@@ -2992,15 +3013,25 @@
         renderer.render(scene, camera);
       }
 
-      // ── Preset switching + hover + cycle ───────────────────────────
+      // ── Selection + auto-cycle + offscreen pause ────────────────────
+      // Single source of truth: activeIdx. .is-active is set only by
+      // setActive(). Any manual selection (hover or tap) latches
+      // cycleStopped=true — the auto-cycle can never bump a manually
+      // selected row (that was the double-highlight bug).
       const rows  = document.querySelectorAll('.labs-index-row');
       const links = document.querySelectorAll('.labs-name-link');
-      let currentIdx = 0;
-      let hoveredIdx = null;
+      const isTouch = matchMedia('(hover: none)').matches;
+      let activeIdx = -1;
+      let cycleStopped = false;
       let cycleTimer = null;
 
-      function goTo(idx, animate = true) {
-        currentIdx = idx;
+      function setActive(idx, manual) {
+        if (idx === activeIdx) {
+          if (manual) stopCycle();
+          return;
+        }
+        const animate = activeIdx !== -1;
+        activeIdx = idx;
         rows.forEach((row, i) => row.classList.toggle('is-active', i === idx));
         labelEl.textContent = LABS[idx].name;
         if (animate) {
@@ -3012,36 +3043,59 @@
         } else {
           applyPreset(LABS[idx].enginePreset);
         }
+        if (manual) stopCycle();
+      }
+
+      function stopCycle() {
+        if (cycleStopped) return;
+        cycleStopped = true;
+        if (cycleTimer) { clearInterval(cycleTimer); cycleTimer = null; }
       }
 
       links.forEach((link, i) => {
-        link.addEventListener('mouseenter', () => {
-          hoveredIdx = i;
-          if (i !== currentIdx) goTo(i);
-        });
-        link.addEventListener('mouseleave', () => { hoveredIdx = null; });
-        link.addEventListener('focus', () => {
-          hoveredIdx = i;
-          if (i !== currentIdx) goTo(i);
-        });
-        link.addEventListener('blur', () => { hoveredIdx = null; });
+        // Keyboard focus counts as a manual select on both platforms.
+        link.addEventListener('focus', () => setActive(i, true));
+
+        if (isTouch) {
+          // Touch: two-step. Tap on the row selects it; only a tap on
+          // the .labs-cta-mini ("LAUNCH →" / "FIND YOURS →") navigates.
+          // Keyboard Enter still navigates (e.detail === 0 on Enter).
+          link.addEventListener('click', (e) => {
+            if (e.detail === 0) return;                      // keyboard: let it nav
+            if (e.target.closest('.labs-cta-mini')) return;  // CTA tap: let it nav
+            e.preventDefault();
+            setActive(i, true);
+          });
+        } else {
+          // Desktop hover: unchanged from before, still counts as manual.
+          link.addEventListener('mouseenter', () => setActive(i, true));
+        }
       });
 
+      // Initial state (no fade, not manual so cycle keeps running)
+      setActive(0, false);
+      resize();
+
       cycleTimer = setInterval(() => {
-        if (hoveredIdx !== null) return;
-        const next = (currentIdx + 1) % LABS.length;
-        goTo(next);
+        if (cycleStopped) return;
+        setActive((activeIdx + 1) % LABS.length, false);
       }, 6000);
 
-      // Initial state (no fade)
-      goTo(0, false);
-      resize();
+      // Pause rendering when the preview panel is offscreen — spares
+      // shader work while user is elsewhere on the page.
+      let visible = true;
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver(([entry]) => {
+          visible = entry.isIntersecting;
+        }, { rootMargin: '150px' });
+        io.observe(previewEl);
+      }
 
       // First frame + start rAF
       frame(currentT());
       clock.start();
       function tickLabs() {
-        frame(currentT());
+        if (visible) frame(currentT());
         requestAnimationFrame(tickLabs);
       }
       requestAnimationFrame(tickLabs);
