@@ -338,7 +338,17 @@
       color: var(--ink);
       max-width: 22ch;
       text-wrap: balance;
-      margin-bottom: clamp(3rem, 6vw, 6rem);
+      margin-bottom: clamp(1.4rem, 2.2vw, 2rem);
+    }
+    /* Muted ink-on-green — sets up the Labs product index below. */
+    .labs-lead-note {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(.95rem, 1.15vw, 1.1rem);
+      line-height: 1.55;
+      color: rgba(20,19,16,.72);
+      max-width: 58ch;
+      text-wrap: balance;
+      margin: 0 0 clamp(2.5rem, 5vw, 4.5rem);
     }
 
     /* Labs index (left) + preview (right). NO NUMBERS. */
@@ -678,6 +688,13 @@
     .melomania-title {
       letter-spacing: .01em;
       max-width: none;
+    }
+    /* Same positive tracking wherever MELOMANIA renders in display serif
+       (house-index pillar-name, modal title) — the base classes track
+       negative for mixed-case, which crams caps. */
+    .pillar-name.name-caps,
+    .md-ti.name-caps {
+      letter-spacing: .01em;
     }
     .event-card-note {
       font-family: 'Inter', sans-serif;
@@ -1134,6 +1151,7 @@
       <div class="section-inner">
         <div class="section-eyebrow" id="labs-eyebrow"><span>Labs</span></div>
         <h2 class="labs-lead">The newest wing of the house.</h2>
+        <p class="labs-lead-note">Labs is where the house experiments. Music, code, and generative technology in the same room — instruments we wished existed, so we built them. Everything here is live, evolving, and made in-house. New experiments join as they're ready.</p>
         <div class="labs-grid">
           <ol class="labs-index" role="list" id="labs-index"></ol>
           <div class="labs-preview" id="labs-preview">
@@ -1153,7 +1171,7 @@
       </nav>
       <section class="pillar-hero">
         <div class="pillar-hero-inner">
-          <div class="pillar-hero-tag"><span>Record Label · Melomaniac Studios</span></div>
+          <div class="pillar-hero-tag"><span>Record Label</span></div>
           <h1 class="pillar-hero-title">Independent. Artist-first.</h1>
           <p class="pillar-hero-lead">Home to Armin Saber. Released, mixed, and mastered in-house.</p>
         </div>
@@ -1161,7 +1179,7 @@
       <div class="pillar-body">
         <div class="pillar-section">
           <div class="pillar-section-label"><span>Artist</span></div>
-          <p class="pillar-text"><strong>Armin Saber</strong> is an Iranian-Canadian producer working across experimental electronic and Farsi soul. The label's founding artist and the catalog behind the Frequency song-match engine.</p>
+          <p class="pillar-text"><strong>Armin Saber</strong> is a composer and producer, currently experimenting with electronic music. The label's founding artist and the catalog behind the Frequency song-match engine.</p>
           <div class="pill-row" style="margin-top:1.2rem">
             <a class="pill" href="https://open.spotify.com/artist/5cI5jeUkUKcKSvMs5DNKno" target="_blank" rel="noopener">Spotify</a>
             <a class="pill" href="https://music.apple.com/ca/artist/armin-saber/1690610771" target="_blank" rel="noopener">Apple Music</a>
@@ -1187,7 +1205,7 @@
       </nav>
       <section class="pillar-hero">
         <div class="pillar-hero-inner">
-          <div class="pillar-hero-tag"><span>Sound Design · Melomaniac Studios</span></div>
+          <div class="pillar-hero-tag"><span>Sound Design</span></div>
           <h1 class="pillar-hero-title">Sonic identity for brands and spaces.</h1>
           <p class="pillar-hero-lead">Zero to one hundred, in-house.</p>
         </div>
@@ -1230,9 +1248,9 @@
       </nav>
       <section class="pillar-hero">
         <div class="pillar-hero-inner">
-          <div class="pillar-hero-tag"><span>Melomania · Melomaniac Studios</span></div>
+          <div class="pillar-hero-tag"><span>MELOMANIA</span></div>
           <h1 class="pillar-hero-title melomania-title">MELOMANIA</h1>
-          <p class="pillar-hero-lead">Original music, composed per night. A party concept rooted in originality — invite only.</p>
+          <p class="pillar-hero-lead">The party concept. Original music, composed per night. Invite only.</p>
         </div>
       </section>
       <div class="pillar-body">
@@ -1426,14 +1444,14 @@
     <div class="md">
       <div class="md-hd">
         <div>
-          <div class="md-ti">Melomania</div>
+          <div class="md-ti name-caps">MELOMANIA</div>
           <div class="md-sub">Members hear first — before events go public.</div>
         </div>
         <button class="md-x" onclick="closeMelSignup()" aria-label="Close">✕</button>
       </div>
       <div id="mel-form-wrap">
         <div class="ea-form">
-          <p style="color: var(--ink-soft); font-size: .95rem; line-height: 1.55; margin: 0 0 .3rem;">Early access to every Melomania. No spam — one notice, one link, one date.</p>
+          <p style="color: var(--ink-soft); font-size: .95rem; line-height: 1.55; margin: 0 0 .3rem;">Early access to every MELOMANIA. No spam — one notice, one link, one date.</p>
           <div class="ea-row">
             <input class="mi" type="text" id="mel-fn" placeholder="First name" maxlength="40">
             <input class="mi" type="text" id="mel-ln" placeholder="Last name" maxlength="40">
@@ -1445,7 +1463,7 @@
       </div>
       <div class="ea-ok" id="mel-ok">
         <div class="ea-ok-h">You're on the list.</div>
-        <div class="ea-ok-s">We'll reach out when the next Melomania is set.</div>
+        <div class="ea-ok-s">We'll reach out when the next MELOMANIA is set.</div>
       </div>
     </div>
   </div>
@@ -1460,10 +1478,10 @@
   <script>
   (function buildHouseAndLabs(){
     const PILLARS = [
-      { num: '01', name: 'Record Label', line: 'Independent. Artist-first.',                                   href: '#record-label' },
-      { num: '02', name: 'Sound Design', line: 'Sonic identity for brands and spaces, zero to one hundred.',  href: '#sound-design' },
-      { num: '03', name: 'Melomania',    line: 'Original music, composed per night. Invite only.',            href: '#melomania' },
-      { num: '04', name: 'Labs',         line: 'The experimental wing.',                                       href: '#labs' },
+      { num: '01', name: 'Record Label', line: 'Independent. Artist-first.',                                                                                                 href: '#record-label' },
+      { num: '02', name: 'Sound Design', line: 'Sonic identity for brands and spaces, zero to one hundred.',                                                                  href: '#sound-design' },
+      { num: '03', name: 'MELOMANIA',    line: 'The party concept. Original music, composed per night. Invite only.',                                                         href: '#melomania',    cls: 'name-caps' },
+      { num: '04', name: 'Labs',         line: 'The experimental wing.',                                                                                                       href: '#labs' },
     ];
 
     // NO NUMBERS. Data-driven — one entry per product; the module script
@@ -1489,7 +1507,7 @@
           <a class="pillar-link" href="${escapeHtml(p.href)}">
             <span class="pillar-num" aria-hidden="true">${escapeHtml(p.num)}</span>
             <div class="pillar-body">
-              <div class="pillar-name">${escapeHtml(p.name)}</div>
+              <div class="pillar-name${p.cls ? ' ' + escapeHtml(p.cls) : ''}">${escapeHtml(p.name)}</div>
               <div class="pillar-line">${escapeHtml(p.line)}</div>
             </div>
             <span class="pillar-arrow" aria-hidden="true">&rarr;</span>
@@ -1541,7 +1559,7 @@
       '': 'Melomaniac Studios — A house for sound',
       'record-label': 'Record Label — Melomaniac Studios',
       'sound-design': 'Sound Design — Melomaniac Studios',
-      'melomania': 'Melomania — Melomaniac Studios',
+      'melomania': 'MELOMANIA — Melomaniac Studios',
       'manifold': 'Manifold — Melomaniac Labs',
       'early-access': 'Early Access — Melomaniac Labs',
     };
