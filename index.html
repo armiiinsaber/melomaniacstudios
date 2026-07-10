@@ -470,20 +470,22 @@
     @media (max-width: 900px) {
       .labs-grid {
         grid-template-columns: 1fr;
-        gap: 1.5rem;
+        gap: 2rem;
       }
-      /* Preview leads the stack AND sticks to the top of the viewport so
-         tapping a name below always updates something already in view —
-         no scroll hunt after selection. */
+      /* On mobile the preview is JS-reparented into the currently active
+         <li> (accordion), so it sits directly under the selected name
+         and moves with the selection. Modest height so it never
+         dominates the viewport, no sticky/fixed so scrolling never
+         causes it to overlap the rows below. */
       .labs-preview {
-        order: -1;
-        min-height: 17rem;
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        background: var(--green);
+        min-height: 0;
+        height: 40vh;
+        max-height: 20rem;
       }
-      .labs-index { order: 1; }
+      .labs-index-row .labs-preview {
+        margin: 1rem 0 .25rem;
+        border-bottom: none;
+      }
     }
 
     /* ═══════════════════════════════════════════════════════════════════
@@ -638,17 +640,15 @@
       max-width: 34rem;
       display: flex; flex-direction: column; gap: .7rem;
     }
-    .event-card-label {
-      font-size: .68rem; letter-spacing: .34em; text-transform: uppercase;
-      color: var(--ink-soft); font-weight: 500;
-    }
-    .event-card-date {
+    .event-card-headline {
       font-family: var(--house-serif);
       font-variation-settings: 'opsz' 144, 'wght' 300, var(--house-serif-mods);
-      font-size: clamp(2.8rem, 5.5vw, 4.5rem);
-      line-height: .9;
+      font-size: clamp(1.9rem, 4.4vw, 3.2rem);
+      line-height: 1.05;
       letter-spacing: -.02em;
       color: var(--ink);
+      text-wrap: balance;
+      max-width: 22ch;
     }
 
     /* ═══════════════════════════════════════════════════════════════════
@@ -666,8 +666,7 @@
     #page-melomania .pillar-section-label::before { background: rgba(245,243,236,.55); }
     #page-melomania .pillar-text { color: rgba(245,243,236,.9); }
     #page-melomania .event-card { border-color: rgba(245,243,236,.2); }
-    #page-melomania .event-card-label { color: rgba(245,243,236,.55); }
-    #page-melomania .event-card-date {
+    #page-melomania .event-card-headline {
       color: var(--green);
       text-shadow: 0 0 60px rgba(184,240,110,.35);   /* green may glow on dark */
     }
@@ -1244,8 +1243,7 @@
         <div class="pillar-section">
           <div class="pillar-section-label"><span>Next event</span></div>
           <div class="event-card">
-            <div class="event-card-label">Save the date</div>
-            <div class="event-card-date">May 2, 2026</div>
+            <div class="event-card-headline">The next one is already being written.</div>
             <p class="event-card-note">Members hear first. Early access before any event goes public.</p>
             <div class="pill-row" style="margin-top:.8rem">
               <button class="pill fill" onclick="openMelSignup()">Get notified first →</button>
@@ -3021,9 +3019,24 @@
       const rows  = document.querySelectorAll('.labs-index-row');
       const links = document.querySelectorAll('.labs-name-link');
       const isTouch = matchMedia('(hover: none)').matches;
+      // At the mobile CSS breakpoint we accordion the preview: the
+      // single .labs-preview element is reparented into the currently
+      // active <li>, so it appears directly under the selected name
+      // and moves with the selection. No sticky positioning — the
+      // preview scrolls with the row it lives in.
+      const mqMobile = matchMedia('(max-width: 900px)');
+      const previewOriginalParent = previewEl.parentElement;
       let activeIdx = -1;
       let cycleStopped = false;
       let cycleTimer = null;
+
+      function placePreview(idx) {
+        const target = mqMobile.matches ? rows[idx] : previewOriginalParent;
+        if (previewEl.parentElement !== target) {
+          target.appendChild(previewEl);
+          resize();
+        }
+      }
 
       function setActive(idx, manual) {
         if (idx === activeIdx) {
@@ -3034,6 +3047,7 @@
         activeIdx = idx;
         rows.forEach((row, i) => row.classList.toggle('is-active', i === idx));
         labelEl.textContent = LABS[idx].name;
+        placePreview(idx);
         if (animate) {
           previewEl.classList.add('is-switching');
           setTimeout(() => {
@@ -3045,6 +3059,12 @@
         }
         if (manual) stopCycle();
       }
+
+      // Reparent if the layout mode changes (orientation, resize crossing
+      // the breakpoint, etc.).
+      mqMobile.addEventListener('change', () => {
+        if (activeIdx !== -1) placePreview(activeIdx);
+      });
 
       function stopCycle() {
         if (cycleStopped) return;
