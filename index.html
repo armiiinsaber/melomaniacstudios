@@ -21,6 +21,18 @@
        waitlist just no-op (the rest of the site keeps working). -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="window._sbFailed=true"></script>
   <style>
+    /* Melomaniac Serif v0.1 — self-hosted display face. Base is Bodoni Moda
+       (SIL OFL 1.1); modification recipe in DESIGN.md § 8. Roman only —
+       italic display (the wordmark's "Studios" line) still rides Fraunces
+       italic which the Google Fonts <link> already loads. */
+    @font-face {
+      font-family: 'Melomaniac Serif';
+      src: url('./fonts/melomaniac-serif-v0.1.woff') format('woff'),
+           url('./fonts/melomaniac-serif-v0.1.ttf')  format('truetype');
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+    }
     :root {
       --green: #B8F06E;
       --green-ink: #24350D;
@@ -30,8 +42,11 @@
       --ink-soft: rgba(20,19,16,.55);
       --ink-mute: rgba(20,19,16,.34);
       --hairline: rgba(20,19,16,.14);
-      /* The house cut — proprietary Fraunces instance. See DESIGN.md. */
-      --house-serif: 'Fraunces', 'Instrument Serif', Georgia, serif;
+      /* Display stack: Melomaniac Serif v0.1 (roman) leads; Fraunces still
+         renders italic (wordmark's "Studios" line) and any glyph Melomaniac
+         Serif's 105-glyph subset doesn't cover. See DESIGN.md § 8. */
+      --house-serif: 'Melomaniac Serif', 'Fraunces', 'Instrument Serif', Georgia, serif;
+      /* Fraunces-only axes — Melomaniac Serif ignores SOFT/WONK silently. */
       --house-serif-mods: 'SOFT' 40, 'WONK' 0;
       /* Display weight for all opsz-144 usages (wordmark, pillar names,
          section headlines). Small opsz-24 marks (arrows, italic leads)
