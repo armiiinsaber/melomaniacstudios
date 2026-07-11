@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Type review — Melomaniac Studios</title>
+
+  <!-- Fraunces — matches the main site load exactly. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,100..900,0..100,0..1;1,9..144,100..900,0..100,0..1&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* Self-hosted Melomaniac Serif v0.1 — derived from Bodoni Moda (SIL OFL 1.1).
+       See fonts/Bodoni-Moda-OFL.txt for the base license and DESIGN.md for the
+       full modification recipe. WOFF only for now (brotli wasn't available when
+       this was built; WOFF2 to follow when the build environment gets it). */
+    @font-face {
+      font-family: 'Melomaniac Serif';
+      src: url('./fonts/melomaniac-serif-v0.1.woff') format('woff'),
+           url('./fonts/melomaniac-serif-v0.1.ttf')  format('truetype');
+      font-weight: 100 900;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --paper: #f5f3ec;
+      --ink: #141310;
+      --ink-soft: #575349;
+      --ink-mute: #8a8578;
+      --green: #b8f06e;
+      --hairline: rgba(20,19,16,.15);
+      --grid-gap: clamp(2rem, 4vw, 5rem);
+      --pad-x: clamp(1.5rem, 4vw, 3.5rem);
+      --pad-y: clamp(2.5rem, 5vw, 4rem);
+
+      /* House-cut mods for Fraunces column — matches the live site. */
+      --fraunces-mods: 'SOFT' 40, 'WONK' 0;
+      /* Display weight both faces are tested at. Matches --house-serif-display-wght
+         on the main site so this comparison is honest — same weight target. */
+      --display-wght: 600;
+
+      --fraunces-stack: 'Fraunces', 'Instrument Serif', Georgia, serif;
+      --melomaniac-stack: 'Melomaniac Serif', 'Fraunces', Georgia, serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--paper); color: var(--ink); }
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      padding: var(--pad-y) var(--pad-x);
+      min-height: 100vh;
+    }
+
+    .page-head {
+      display: flex; flex-wrap: wrap; justify-content: space-between;
+      align-items: baseline; gap: 1rem;
+      margin-bottom: clamp(2rem, 5vw, 4rem);
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .page-head h1 {
+      font-family: 'Inter', sans-serif;
+      font-size: .68rem; letter-spacing: .34em; text-transform: uppercase;
+      font-weight: 500; color: var(--ink);
+    }
+    .page-head .note {
+      font-size: .78rem; color: var(--ink-soft); max-width: 42ch;
+    }
+    .page-head a { color: currentColor; border-bottom: 1px solid var(--hairline); }
+
+    .review-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--grid-gap);
+    }
+    @media (max-width: 900px) {
+      .review-grid { grid-template-columns: 1fr; }
+    }
+
+    .col {
+      border: 1px solid var(--hairline);
+      border-radius: 2px;
+      padding: clamp(1.5rem, 3vw, 2.5rem);
+      display: flex; flex-direction: column;
+      gap: clamp(1.75rem, 3vw, 2.5rem);
+    }
+    .col-eyebrow {
+      font-size: .68rem; letter-spacing: .34em; text-transform: uppercase;
+      font-weight: 500;
+      color: var(--ink);
+      display: inline-flex; align-items: center; gap: .85rem;
+    }
+    .col-eyebrow::before {
+      content: ''; display: inline-block; width: 20px; height: 1px; background: var(--ink);
+    }
+    .col-eyebrow .tag {
+      font-family: 'Inter', sans-serif;
+      color: var(--ink-mute);
+      font-size: .58rem;
+      letter-spacing: .2em;
+    }
+    .col-meta {
+      font-family: 'Inter', sans-serif;
+      font-size: .8rem; line-height: 1.5;
+      color: var(--ink-soft);
+      max-width: 46ch;
+    }
+
+    /* Two display families used in the specimens. Both driven from the same
+       CSS custom property for weight so any tuning stays synchronized. */
+    .demo-fraunces {
+      font-family: var(--fraunces-stack);
+      font-variation-settings: 'opsz' 144, 'wght' var(--display-wght), var(--fraunces-mods);
+      font-weight: var(--display-wght);
+      color: var(--ink);
+    }
+    .demo-melomaniac {
+      font-family: var(--melomaniac-stack);
+      font-variation-settings: 'opsz' 144, 'wght' var(--display-wght);
+      font-weight: var(--display-wght);
+      color: var(--ink);
+    }
+
+    /* Specimen types */
+    .specimen { display: flex; flex-direction: column; gap: .3rem; }
+    .specimen-label {
+      font-family: 'Inter', sans-serif;
+      font-size: .58rem; letter-spacing: .3em; text-transform: uppercase;
+      color: var(--ink-mute); font-weight: 500;
+    }
+
+    .word-a {
+      font-size: clamp(3rem, 8vw, 6.2rem);
+      line-height: .9;
+      letter-spacing: -.028em;
+    }
+    .word-b {
+      font-size: clamp(3rem, 8vw, 6.2rem);
+      line-height: .9;
+      letter-spacing: -.028em;
+      font-style: italic;
+    }
+    .the-house {
+      font-size: clamp(2.4rem, 6vw, 5rem);
+      line-height: .95;
+      letter-spacing: -.02em;
+    }
+    .pillar-list { display: flex; flex-direction: column; gap: .35rem; }
+    .pillar-line {
+      font-size: clamp(1.8rem, 4vw, 3.2rem);
+      line-height: 1.0;
+      letter-spacing: -.02em;
+    }
+    .pillar-line.caps { letter-spacing: .01em; }
+    .melomania-big {
+      font-size: clamp(3.2rem, 9vw, 7rem);
+      line-height: .92;
+      letter-spacing: .01em;
+    }
+
+    .footer-note {
+      margin-top: clamp(2.5rem, 5vw, 4rem);
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--hairline);
+      font-family: 'Inter', sans-serif;
+      font-size: .78rem; line-height: 1.6;
+      color: var(--ink-soft);
+      max-width: 72ch;
+    }
+    .footer-note strong { color: var(--ink); font-weight: 600; }
+
+    /* Print stress-test — flick through 3 sizes to make sure the shapes hold
+       at different display scales. */
+    .scale-test {
+      display: grid; gap: .25rem;
+    }
+    .scale-test .st-lg { font-size: clamp(2.4rem, 6vw, 5rem); line-height: 1; }
+    .scale-test .st-md { font-size: clamp(1.4rem, 3vw, 2.5rem); line-height: 1.05; }
+    .scale-test .st-sm { font-size: clamp(1rem, 1.5vw, 1.35rem); line-height: 1.15; }
+  </style>
+</head>
+<body>
+  <header class="page-head">
+    <h1>Type review — Melomaniac Serif v0.1</h1>
+    <p class="note">Pick a display face. Body/UI copy stays Inter regardless of what wins here. <a href="./index.html">← back to the site</a></p>
+  </header>
+
+  <section class="review-grid">
+
+    <!-- ═════ LEFT: current house cut (Fraunces) at the new bolder weight ═════ -->
+    <div class="col">
+      <div class="col-eyebrow"><span>A · Fraunces (house cut)</span><span class="tag">wght 600 · SOFT 40 · WONK 0</span></div>
+      <p class="col-meta">Current live face at the new display weight from edit 6a. This is what ships to main if v0.1 doesn't win the review — no font swap, just heavier titles.</p>
+
+      <div class="specimen">
+        <div class="specimen-label">Wordmark</div>
+        <div class="demo-fraunces word-a">Melomaniac</div>
+        <div class="demo-fraunces word-b">Studios</div>
+      </div>
+
+      <div class="specimen">
+        <div class="specimen-label">Section headline</div>
+        <div class="demo-fraunces the-house">The House</div>
+      </div>
+
+      <div class="specimen">
+        <div class="specimen-label">House index (pillar names)</div>
+        <div class="pillar-list">
+          <div class="demo-fraunces pillar-line">Record Label</div>
+          <div class="demo-fraunces pillar-line">Sound Design</div>
+          <div class="demo-fraunces pillar-line caps">MELOMANIA</div>
+          <div class="demo-fraunces pillar-line">Labs</div>
+        </div>
+      </div>
+
+      <div class="specimen">
+        <div class="specimen-label">Pillar-page title</div>
+        <div class="demo-fraunces melomania-big">MELOMANIA</div>
+      </div>
+
+      <div class="specimen">
+        <div class="specimen-label">Scale test</div>
+        <div class="scale-test">
+          <div class="demo-fraunces st-lg">Frequency finds your song.</div>
+          <div class="demo-fraunces st-md">A composer and producer.</div>
+          <div class="demo-fraunces st-sm">Members hear first. Early access before any event goes public.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════ RIGHT: Melomaniac Serif v0.1 (modified Bodoni Moda) ═════ -->
+    <div class="col">
+      <div class="col-eyebrow"><span>B · Melomaniac Serif v0.1</span><span class="tag">wght 600 · self-hosted</span></div>
+      <p class="col-meta">Bodoni Moda base (SIL OFL) with 6 systematic modifications: rename, subset, tightened advances, apex clip on M/N, S spine kern, ear/spur trim on a/e. See DESIGN.md § "Melomaniac Serif v0.1".</p>
+
+      <div class="specimen">
+        <div class="specimen-label">Wordmark</div>
+        <div class="demo-melomaniac word-a">Melomaniac</div>
+        <div class="demo-melomaniac word-b">Studios</div>
+      </div>
+
+      <div class="specimen">
+        <div class="specimen-label">Section headline</div>
+        <div class="demo-melomaniac the-house">The House</div>
+      </div>
+
+      <div class="specimen">
+        <div class="specimen-label">House index (pillar names)</div>
+        <div class="pillar-list">
+          <div class="demo-melomaniac pillar-line">Record Label</div>
+          <div class="demo-melomaniac pillar-line">Sound Design</div>
+          <div class="demo-melomaniac pillar-line caps">MELOMANIA</div>
+          <div class="demo-melomaniac pillar-line">Labs</div>
+        </div>
+      </div>
+
+      <div class="specimen">
+        <div class="specimen-label">Pillar-page title</div>
+        <div class="demo-melomaniac melomania-big">MELOMANIA</div>
+      </div>
+
+      <div class="specimen">
+        <div class="specimen-label">Scale test</div>
+        <div class="scale-test">
+          <div class="demo-melomaniac st-lg">Frequency finds your song.</div>
+          <div class="demo-melomaniac st-md">A composer and producer.</div>
+          <div class="demo-melomaniac st-sm">Members hear first. Early access before any event goes public.</div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <p class="footer-note">
+    <strong>How to pick.</strong>
+    A ships if v0.1 doesn't feel like enough of a step up — you keep Fraunces, but titles are bolder site-wide (that change is already merged to main as edit 6a).
+    B ships if the bespoke face reads distinctly and you're happy with the modifications — in that case the display face swaps to Melomaniac Serif v0.1 for wordmark / pillar names / section headlines while Inter continues to handle body and UI copy.
+    Either way, a fully commissioned typeface stays the long-term plan (see DESIGN.md).
+  </p>
+</body>
+</html>

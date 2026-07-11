@@ -121,3 +121,58 @@ Functionality to preserve exactly: hash router, Supabase auth + waitlist + Frequ
 - Serve locally with live reload for review; founder approves section by section (hero first — get the generative piece feeling right before styling anything else).
 - Keep a `CHANGELOG.md`. Commit per section.
 - Follow-up task once approved (separate pass): bring NOTED (noted.melomaniacstudios.com) into this system — it keeps its green and (being a night-ride tool) may keep a dark ground as an "experience page," but adopts the new typography and drops Bebas/DM Mono. Interaction model untouched.
+
+---
+
+## 8. Type experiment — Melomaniac Serif v0.1 (branch `type-experiment`)
+
+The house cut (§ 3) got us to a distinct instance of Fraunces. This step is the next move on the founder's roadmap: a display face that reads as *ours* to a human eye — like the NYT masthead reads as the New York Times' own — without waiting on a fully commissioned typeface. Two-part experiment on `type-experiment` (not on main until approved via `/type-review.html`).
+
+### 8a. Bolder display weight (safe, immediate)
+
+`--house-serif-display-wght: 600` in `:root`. Every declaration that draws Fraunces at `opsz 144` (wordmark, pillar-page titles, section headlines, Labs product titles, modal titles, quiz titles, footer wordmark — 16 sites) references the variable via `font-variation-settings: 'opsz' 144, 'wght' var(--house-serif-display-wght), var(--house-serif-mods)`. Small `opsz 24` marks (italic leads, mini arrows, back-chevrons) intentionally stay at wght 300.
+
+This one CSS variable is the whole knob for the "voice" of display type across the site. If wght 600 reads too heavy in production, one edit to `:root` retunes everything.
+
+### 8b. Melomaniac Serif v0.1 (bespoke, gated behind review)
+
+A modified derivative of a high-contrast SIL-OFL display serif, exported as our own family. Deliberately v0.1 — a first pass we can iterate on; not a substitute for the commissioned face still on the roadmap.
+
+**Base font.** Bodoni Moda (SIL Open Font License 1.1, © 2020 The Bodoni Moda Project Authors — https://github.com/indestructible-type/Bodoni). Fetched as a variable font (opsz + wght axes) from Google Fonts' `ofl/bodonimoda/` directory. Chosen after evaluating candidates: rejected Fraunces (already the house serif) and Playfair (too common as a "premium display" default); Bodoni Moda wins on high vertical contrast, an actively-maintained OFL project, both wght + opsz axes on the variable, and shipping italics we can grow into. The OFL license is bundled at [fonts/Bodoni-Moda-OFL.txt](fonts/Bodoni-Moda-OFL.txt). Bodoni Moda reserves no Reserved Font Name (RFN), so v0.1 can legally take the new family name "Melomaniac Serif" as long as the OFL notice ships alongside.
+
+**Modification recipe (v0.1).** Applied by [type-experiment/build_melomaniac_serif.py](../scratchpad/type/build_melomaniac_serif.py) — a fontTools-based build script kept out of the main repo (it needs the base .ttf and a Python 3 env). Every rule is systematic and documented so a future rebuild is repeatable.
+
+| # | Rule | What it does | Delta |
+|---|---|---|---|
+| R1 | Identity rename | Rewrites the `name` table so browsers and OSes see this as its own family. Family = "Melomaniac Serif", version 0.100, unique ID and manufacturer credit Bodoni Moda upstream. | All `name` records (nameIDs 1, 2, 3, 4, 5, 6, 8, 10, 16, 17, 21, 22) rewritten on both Windows Unicode English and Mac Roman platforms. |
+| R2 | Subset | Reduces the font to the 105 codepoints the site actually uses: ASCII printable plus em-dash, en-dash, ellipsis, middle-dot, curly quotes (‘’“”), and Unicode arrows (→ ←). Layout features preserved. | 162 KB base TTF → 84 KB modified TTF → 50 KB WOFF. |
+| R3 | Tightened advances | Reduces each glyph's advance width by 3% and centre-shifts its outline by half of the delta so the glyph stays optically centred in the smaller advance box. Reads as tighter aperture at display sizes. | Applied to 544 glyphs. |
+| R4 | Apex clip on M / N | Drops the topmost 1.5% point band by 12 font units, creating a subtle cut/flattened apex distinct from Bodoni Moda's default pointed apex. | 2 glyphs, 12-unit y-drop on apex ridge. |
+| R5 | Spine kern on S | Shifts the four mid-height inflection points (middle third by y, middle half by x) horizontally by +18 units, steepening the perceived spine angle. | 1 glyph, +18-unit x-shift on 4 spine points. |
+| R6 | Ear/spur trim on a / e | Translates the top-right terminal point band (top 15% by y, right 25% by x) inward — for `a` by (-8, -6) font units (the ear), for `e` by (-6, -4) (the spur). | 2 glyphs, 1 point each. |
+
+**How the file gets built.** Prereqs: Python 3.10+ and `fontTools` in the environment. WOFF2 output requires `brotli`; v0.1 ships only WOFF (~50 KB) because the initial build environment couldn't install brotli — the script writes WOFF2 automatically when brotli is present.
+
+```bash
+# From the scratchpad/type/ directory (script and BodoniModa.ttf both live there)
+python3 build_melomaniac_serif.py
+# Writes MelomaniacSerif-v0.1.{ttf,woff,woff2?} in-place.
+# Copy the WOFF (and the OFL text) into the site's fonts/ dir:
+cp MelomaniacSerif-v0.1.woff <repo>/fonts/melomaniac-serif-v0.1.woff
+cp MelomaniacSerif-v0.1.ttf  <repo>/fonts/melomaniac-serif-v0.1.ttf
+cp BodoniModa-OFL.txt         <repo>/fonts/Bodoni-Moda-OFL.txt
+```
+
+**Where it plugs in.** A `@font-face` declaration in `type-review.html` (and, on merge, the main stylesheet) points at `./fonts/melomaniac-serif-v0.1.woff` with the `.ttf` as a legacy fallback. On merge, the `--house-serif` custom property would prepend `'Melomaniac Serif'` ahead of Fraunces so it wins for display text; body/UI keeps `'Inter', sans-serif` untouched. The Fraunces load stays because it's still the source of the italic wordmark line ("Studios") — v0.1 is roman-only.
+
+### 8c. Review gate
+
+[type-review.html](type-review.html) renders a strict two-column comparison at the same weight, opsz, and content: wordmark, "The House", the four pillar names, a MELOMANIA pillar-title, and a three-size scale test. Column A is Fraunces at wght 600 (what 8a alone would ship); Column B is Melomaniac Serif v0.1. Merge decision comes from that page — no shipping v0.1 to main without founder approval on the review page.
+
+### 8d. What v0.1 explicitly is NOT
+
+- Not a commissioned face. Still on the long-term roadmap and still the right eventual answer for the wordmark (§ 3 already flagged this).
+- Not a full family. Roman-only. Italic ("Studios" in the wordmark) continues to render in Fraunces italic — that stays until an italic companion is drawn.
+- Not exhaustive in its glyph edits. R4/R5/R6 use programmatic heuristics (topmost point band, middle-third + middle-half, etc.) rather than the point-by-point work a font designer would do in Glyphs/RoboFont. Where the heuristics don't land, that's a v0.2 target — the recipe is trivial to iterate on.
+- Not a substitute for the discipline in § 3. The house cut applies as before to whichever face wins the review; MELOMANIA still gets its +.01em caps tracking; small-opsz italic leads still ride Fraunces at wght 300.
+
