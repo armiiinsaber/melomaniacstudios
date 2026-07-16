@@ -1570,6 +1570,10 @@
   <script>
   // ─── Router ─────────────────────────────────────────────────────────
   (function(){
+    // The router owns scroll position on every navigation; the browser's
+    // own back/forward restoration fights it (it can smooth-scroll to a
+    // stale mid-animation offset after route() has already positioned us).
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     const pageMap = {
       '': 'page-home',
       'record-label': 'page-record-label',
@@ -1593,12 +1597,36 @@
         window.openQuiz && window.openQuiz();
         return;
       }
+      // Hashes that aren't page routes but name an element on the home
+      // page (e.g. #labs) are in-page anchors, not pages.
+      let anchor = null;
+      if (hash && !(hash in pageMap)) {
+        const el = document.getElementById(hash);
+        if (el && document.getElementById('page-home').contains(el)) anchor = el;
+      }
       const pageId = pageMap[hash] || 'page-home';
       document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
       const pg = document.getElementById(pageId);
       if (pg) pg.classList.add('on');
-      document.title = titles[hash] || 'Melomaniac Studios';
-      window.scrollTo(0, 0);
+      document.title = (anchor ? titles[''] : titles[hash]) || 'Melomaniac Studios';
+      if (anchor) {
+        // The home page may have just become display:block — the anchor has
+        // no layout box until the next frame. behavior stays 'auto' so the
+        // html scroll-behavior rule (smooth / reduced-motion) applies. Skip
+        // if another navigation landed before the frame fired.
+        requestAnimationFrame(() => {
+          if (location.hash.replace('#','').trim() === hash) anchor.scrollIntoView({ block: 'start' });
+        });
+      } else {
+        // Instant, not smooth: a smooth scroll-to-top races Chromium's
+        // history scroll restoration on back/forward and can strand mid-page.
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        // Re-assert next frame: a smooth anchor scroll still in flight from
+        // a just-superseded navigation can cancel into a few px of offset.
+        requestAnimationFrame(() => {
+          if (location.hash.replace('#','').trim() === hash) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        });
+      }
       if (hash === 'manifold' && window.__initManifold) window.__initManifold();
       // The loading cover exists to guard hero first-paint. On direct URL
       // loads to a non-home page, hero isn't the display — reveal immediately.
